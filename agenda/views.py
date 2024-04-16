@@ -7,18 +7,12 @@ from bson import json_util
 client =  pymongo.MongoClient('localhost', 27017, username='root', password='example')
 db = client['tetra']
 
-
-# Create your views here.
 def index(request):
     collection = db['agenda']
     event_details = collection.find()
- 
-    data = list(event_details)
-    
-    json_data = json_util.dumps(data)
-    
 
-    print(json_data)
+    json_data = json_util.dumps(list(event_details))
+   
     response = HttpResponse(json_data, content_type='application/json')
     return response
 
@@ -26,8 +20,6 @@ def json_contains_key(data, keys):
     for key in keys:
         if key not in data:
             return (False, "Missing key {} in data sent".format(key))
-        #elif type(data[key]) is not types[]
-        
     return (True, "Data seems good")
 
 def checkEventoData(data):
@@ -35,16 +27,33 @@ def checkEventoData(data):
     return json_contains_key(data, keys)
 
 
+def checkAvailability(data, collection):
+    location = data['location']
+    date = ['date']
+
+    return list(collection.find({"location": location, "date": date}))
+
+
 def addEvento(request):
+    collection = db['agenda']
     data = json.loads(request.body.decode('utf-8'))
-    print(data)
-    print(data['name'])
 
-    print(checkEventoData(data))
+    isDataCorrect, message = checkEventoData(data)
 
-    print(type(data['name']))
+    if isDataCorrect:
+        eventFound = checkAvailability(data, collection)
+        if not eventFound:
+            message = 'Blocked spot'
+        else:
+            message = 'Available spot'
 
-    json_data = json_util.dumps([{"foo": "bar"}])
+            res = collection.insert_one(data)  
+            status = "successful." if res.inserted_id  else "failed."   
+            message = 'Event added {}'.format(status)
+
+
+
+    json_data = json_util.dumps([{"message": message}])
     response = HttpResponse(json_data, content_type='application/json')
     return response
 
