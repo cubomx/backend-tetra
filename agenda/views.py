@@ -1,6 +1,5 @@
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse
 import pymongo
-import requests
 import json
 from bson import json_util
 
@@ -16,16 +15,11 @@ def index(request):
     response = HttpResponse(json_data, content_type='application/json')
     return response
 
-def json_contains_key(data, keys):
+def checkData(data, keys):
     for key in keys:
         if key not in data:
             return (False, "Missing key {} in data sent".format(key))
     return (True, "Data seems good")
-
-def checkEventoData(data):
-    keys = ['name', 'clients', 'type', 'date', 'location', 'num_of_people', 'cost', 'upfront']
-    return json_contains_key(data, keys)
-
 
 def checkAvailability(data, collection):
     location = data['location']
@@ -37,8 +31,9 @@ def checkAvailability(data, collection):
 def addEvento(request):
     collection = db['agenda']
     data = json.loads(request.body.decode('utf-8'))
+    keys = ['name', 'clients', 'type', 'date', 'location', 'num_of_people', 'cost', 'upfront']
 
-    isDataCorrect, message = checkEventoData(data)
+    isDataCorrect, message = checkData(data, keys)
 
     if isDataCorrect:
         eventFound = checkAvailability(data, collection)
@@ -52,19 +47,34 @@ def addEvento(request):
             status = "successful." if res.inserted_id  else "failed."   
             message = 'Event added {}'.format(status)
 
-
-
     json_data = json_util.dumps([{"message": message}])
     response = HttpResponse(json_data, content_type='application/json')
     return response
 
+def delEvento(request):
+    if not request.content_type == 'application/json':\
+        return HttpResponse([[{'message':'missing JSON'}]], content_type='application/json')
 
-'''event = {
-    "id_evento": "SV_20240607",
-    "fecha": "2024-06-06"
-}
+    collection = db['agenda']
+    message = 'Entry not found'
+    data = json.loads(request.body.decode('utf-8'))
+    keys = ['name', 'date', 'location']
+    
+    isDataCorrect, message = checkData(data, keys)
 
-collection.insert_one(event)
-'''
+    if isDataCorrect:
+        eventFound = checkAvailability(data, collection)
+        if eventFound:
+            print("Event found")
+            res = collection.delete_one(data)
 
-
+            # Check if the deletion was successful
+            if res.deleted_count == 1:
+                message = 'Event deleted successfully.'
+            else:
+                message = 'Event was found but No event was deleted'
+        else:
+            message = 'Not event found with {} and location {}'.format(data['date'], data['location'])
+    json_data = json_util.dumps([{"message": message}])
+    response = HttpResponse(json_data, content_type='application/json')
+    return response
