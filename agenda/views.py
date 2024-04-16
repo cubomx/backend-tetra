@@ -29,7 +29,7 @@ def checkEventoData(data):
 
 def checkAvailability(data, collection):
     location = data['location']
-    date = ['date']
+    date = data['date']
 
     return list(collection.find({"location": location, "date": date}))
 
@@ -42,9 +42,10 @@ def addEvento(request):
 
     if isDataCorrect:
         eventFound = checkAvailability(data, collection)
-        if not eventFound:
+        if eventFound:
             message = 'Blocked spot'
         else:
+            print(eventFound)
             message = 'Available spot'
 
             res = collection.insert_one(data)  
