@@ -2,7 +2,9 @@ from django.http import HttpResponse
 import pymongo
 import json
 from bson import json_util
-from .helpers import checkAvailability, getIDEvento, checkData, check_keys, updateData, checkForChangeOfID
+import sys
+sys.path.append('../')
+from helpers.helpers import search, getIDEvento, checkData, check_keys, updateData
 client =  pymongo.MongoClient('localhost', 27017, username='root', password='example')
 db = client['tetra']
 
@@ -22,12 +24,12 @@ def addEvento(request):
     keys = ['name',  'type', 'date', 'location', 'num_of_people', 'cost', 'upfront']
 
     isDataCorrect, message = checkData(data, keys)
-    id_evento = getIDEvento(data)
+    id_evento = getIDEvento(data['date'], 4)
     message = id_evento
     print(data)
     if isDataCorrect:
         query = {"location": data['location'], "date": data['date']}
-        eventFound = checkAvailability(query, collection)
+        eventFound = search(query, collection)
         if eventFound:
             message = 'Blocked spot'
         else:
@@ -79,14 +81,14 @@ def getEvento(request):
     expected_keys = ['name', 'type', 'date', 'location', 'num_of_people', 'cost', 'upfront']
     res =''
     if check_keys(data, expected_keys):
-        res = collection.find(data)
+        res = list(collection.find(data))
     elif checkData(data, ['id_evento'])[0]:
-        res = collection.find_one({'id_evento' : data['id_evento']})
+        res = [(collection.find_one({'id_evento' : data['id_evento']}))]
     else:
         res = [{'message':'Missing filter'}]
     if res == None:
         res = {'message':'Not data found with the filters asked'}
-    return HttpResponse([res], content_type='application/json')
+    return HttpResponse(res, content_type='application/json')
 
 
 def modifyEvento(request):
@@ -100,13 +102,11 @@ def modifyEvento(request):
         if check_keys(data, expected_keys):
             query = {"location": data['location'], "date": data['date'], "id_evento" : { "$ne" : data['id_evento']}}
 
-            if checkAvailability(query, collection):
+            if search(query, collection):
                 response = {'message':'Blocked spot. Cannot change event to the desired place and date'}
             else:
                 print("Not blocked")
-                data['id_evento'], old_id = checkForChangeOfID(data, collection)
-
-                response = updateData(collection, {'id_evento': old_id}, { "$set" : data })
+                response = updateData(collection, {'id_evento': data['id_evento']}, { "$set" : data })
     elif not checkData(data, ['location', 'date'])[0] and checkData():
         response = updateData(collection, {'id_evento': data['id_evento']}, { "$set" : data })
         

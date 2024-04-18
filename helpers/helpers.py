@@ -1,11 +1,13 @@
-def checkAvailability(query, collection):
+import secrets
+from datetime import datetime
+
+def search(query, collection):
     return list(collection.find(query))
 
-def getIDEvento(data):
-    # Get Each Initial Char from the salon name
-    id_evento = [word[0].upper() for word in data['location'].split()]
-    # get evento date
-    id_evento += ['_'] + data['date'].split('-')
+def getIDEvento(date, bytes):
+    # Generate a random string
+    random_string = secrets.token_hex(bytes)  # Generate a random hex string of 16 bytes (32 characters)
+    id_evento = [random_string] + date.split('-')
     
     return ''.join(id_evento)
 
@@ -44,3 +46,14 @@ def checkForChangeOfID(data, collection):
     if res['location'] != data['location'] or res['date'] != data['date']:
         return (getIDEvento(data), old_id)
     return (id_evento, id_evento)
+
+def getDate():
+    present_date = datetime.now().date()
+    present_date_str = present_date.strftime("%d-%m-%Y")
+    return present_date_str
+
+def generateTicketNumber(bytes, date):
+    random_start = secrets.token_hex(bytes)  
+    randon_end = secrets.token_hex(bytes)
+    id_ticket = [random_start] + date.split('-') + [randon_end]
+    return ''.join(id_ticket)
