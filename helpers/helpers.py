@@ -4,6 +4,25 @@ from datetime import datetime
 def search(query, collection):
     return list(collection.find(query))
 
+def searchWithProjection(query, projection, collection):
+    res = list(collection.find (query, projection))
+    if not res:
+        status = 404
+        res = [{'message' : 'ERROR. Payment not found'}]
+        return (res, status)
+    else:
+        return (res, 200) 
+    
+def deleteExtraQueries(data, expected_keys):
+        # Get the keys of the JSON object
+    data_keys = data.keys()
+    
+    # Check if all keys are in the expected keys list
+    for key in data_keys:
+        if key not in expected_keys:
+            del data[key]
+    return data
+
 def getIDEvento(date, bytes):
     # Generate a random string
     random_string = secrets.token_hex(bytes)  # Generate a random hex string of 16 bytes (32 characters)
@@ -57,3 +76,11 @@ def generateTicketNumber(bytes, date):
     randon_end = secrets.token_hex(bytes)
     id_ticket = [random_start] + date.split('-') + [randon_end]
     return ''.join(id_ticket)
+
+def findAbono(query, collection):
+    res = list(collection.find(query))
+    status = 200
+    if not res:
+        status = 404
+        res = [{'message' : 'ERROR. Payment not found'}]
+    return (res, status)
