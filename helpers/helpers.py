@@ -30,12 +30,14 @@ def getIDEvento(date, bytes):
     
     return ''.join(id_evento)
 
+# check if contains all the expected_keys and not others
 def checkData(data, keys):
     for key in keys:
         if key not in data:
             return (False, "Missing key {} in data sent".format(key))
     return (True, "Data seems good")
 
+# check if contains keys between a range
 def check_keys(data, expected_keys):
     # Get the keys of the JSON object
     data_keys = data.keys()
@@ -54,6 +56,7 @@ def updateData(collection, query, updateQuery):
 
     response = {"Matched" : "{} rows".format(update_result["n"])}
     response["Modified"] = "{} rows".format(update_result["nModified"])
+    print(update_result['ok'])
 
     return response
 
