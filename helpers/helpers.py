@@ -1,5 +1,9 @@
 import secrets
 from datetime import datetime
+from tempfile import NamedTemporaryFile
+from django.utils.encoding import smart_str
+from django.http import HttpResponse
+import pandas as pd
 
 def search(query, collection):
     return list(collection.find(query))
@@ -23,19 +27,24 @@ def deleteExtraQueries(data, expected_keys):
             del data[key]
     return data
 
-def getIDEvento(date, bytes):
+def getIDEvento(data, bytes):
     # Generate a random string
+    date = str(data['year']) + str(data['month']) + str(data['day'])
     random_string = secrets.token_hex(bytes)  # Generate a random hex string of 16 bytes (32 characters)
-    id_evento = [random_string] + date.split('-')
+    id_evento = random_string + str(date)
     
     return ''.join(id_evento)
 
 # check if contains all the expected_keys and not others
-def checkData(data, keys):
+def checkData(data, keys, types):
     for key in keys:
         if key not in data:
             return (False, "Missing key {} in data sent".format(key))
+        elif not isinstance(data[key], types[key]):
+            print(type(data[key]),types[key] )
+            return (False, "Wrong type {} in key {}".format(type(data[key]), key))
     return (True, "Data seems good")
+
 
 # check if contains keys between a range
 def check_keys(data, expected_keys):
@@ -87,3 +96,20 @@ def findAbono(query, collection):
         status = 404
         res = [{'message' : 'ERROR. Payment not found'}]
     return (res, status)
+
+def returnExcel(df, headers, filename, sheet_name):
+    response = None
+    
+    # add format
+    df['cost'] = '$' + (df['cost'].map('{:,.2f}'.format)).astype(str)
+    df['upfront'] = '$' + (df['upfront'].map('{:,.2f}'.format)).astype(str)
+
+    df.rename(columns=headers, inplace = True)
+    # Create a temporary file to save the Excel data
+    with NamedTemporaryFile(delete=True, suffix=".csv") as tmp:
+        response = HttpResponse(content_type='application/xlsx')
+        response['Content-Disposition'] = f'attachment; filename="{filename}.xlsx"'
+        with pd.ExcelWriter(response) as writer:
+            df.to_excel(writer, sheet_name=sheet_name)
+
+    return response

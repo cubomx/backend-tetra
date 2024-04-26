@@ -14,17 +14,18 @@ agendaTable = db['agenda']
 
 def addAbono(request): 
     data = json.loads(request.body.decode('utf-8'))
-    keys = ['id_evento', 'quantity', 'payer']
+    keys = ['id_event', 'quantity', 'payer']
+    types = {'id_evemto' : str, 'quantity' : float, 'payer' : str}
 
     statusCode = 200
-    isDataCorrect, message = checkData(data, keys)
+    isDataCorrect, message = checkData(data, keys, types)
 
     if isDataCorrect:
-        id_evento = data['id_evento']
-        query = {"id_evento": id_evento}
+        id_event = data['id_event']
+        query = {"id_event": id_event}
         eventFound = search(query, agendaTable)
         if eventFound:
-           print('Found event with id_evento {}'.format(id_evento))
+           print('Found event with id_event {}'.format(id_event))
            id_ticket = generateTicketNumber(4, getDate())
            print('Ticket ID Number: {}'.format(id_ticket))
            data['id_ticket'] = id_ticket
@@ -39,7 +40,7 @@ def addAbono(request):
                statusCode = 404
            message = 'Ticket added {}'.format(status)
         else:
-            message = 'Missing event by id_evento'
+            message = 'Missing event by id_event'
             statusCode = 400
 
 
@@ -56,7 +57,7 @@ def getAbono(request):
     
     data = json.loads(request.body.decode('utf-8'))
     status = 200
-    expected_keys = ['id_evento', 'id_ticket']
+    expected_keys = ['id_event', 'id_ticket']
     res = {}
     # check by ids
     if check_keys(data, expected_keys):
@@ -68,14 +69,14 @@ def getAbono(request):
             res['payments'] = result
     # check by date
     
-    elif checkData(data, ['type'])[0]:
+    elif checkData(data, ['type'], {'type' : str })[0]:
         data = deleteExtraQueries(data, ['type', 'day', 'month'])
-        id_eventos, status = searchWithProjection({'type' : data['type']}, {"_id": 0, "id_evento": 1}, agendaTable)
+        id_events, status = searchWithProjection({'type' : data['type']}, {"_id": 0, "id_event": 1}, agendaTable)
         del data['type']
         
         results = []
-        for id_evento in id_eventos:
-            query = data  | id_evento
+        for id_event in id_events:
+            query = data  | id_event
             result = findAbono(query, abonosTable)[0]
             if result:
                 for doc in result:
@@ -85,7 +86,7 @@ def getAbono(request):
     elif check_keys(data, ['day', 'month']):
         res['payments'], status = findAbono(data, abonosTable)
     else:
-        res = {'message':'ERROR. We expect id_evento or id_ticket (or both) in the JSON request. Or, by day, month, type'}
+        res = {'message':'ERROR. We expect id_event or id_ticket (or both) in the JSON request. Or, by day, month, type'}
         status = 400
     return HttpResponse([res], content_type='application/json', status=status)
 

@@ -32,7 +32,8 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'agenda',
-    'finanzas',
+    'abonos',
+    'compras',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
