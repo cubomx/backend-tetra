@@ -15,7 +15,7 @@ agendaTable = db['agenda']
 def addAbono(request): 
     data = json.loads(request.body.decode('utf-8'))
     keys = ['id_event', 'quantity', 'payer']
-    types = {'id_evemto' : str, 'quantity' : float, 'payer' : str}
+    types = {'id_event' : str, 'quantity' : float, 'payer' : str}
 
     statusCode = 200
     isDataCorrect, message = checkData(data, keys, types)
@@ -34,13 +34,13 @@ def addAbono(request):
            res = abonosTable.insert_one(data)
            
            if res.inserted_id:
-               status = "successful. Ticket ID {}".format(id_ticket)
+               status = "satisfactoriamente. Ticket ID {}".format(id_ticket)
            else:
-               status = "failed." 
+               status = "fallido." 
                statusCode = 404
-           message = 'Ticket added {}'.format(status)
+           message = 'Ticket agregado {}'.format(status)
         else:
-            message = 'Missing event by id_event'
+            message = 'No se encontro el evento por el ID: {}'.format(data['id_event'])
             statusCode = 400
 
 
@@ -71,7 +71,7 @@ def getAbono(request):
     
     elif checkData(data, ['type'], {'type' : str })[0]:
         data = deleteExtraQueries(data, ['type', 'day', 'month'])
-        id_events, status = searchWithProjection({'type' : data['type']}, {"_id": 0, "id_event": 1}, agendaTable)
+        id_events, status = searchWithProjection({'type' : data['type']}, {"_id": 0, "id_event": 1}, agendaTable, 'ERROR. Payment not found')
         del data['type']
         
         results = []
@@ -86,7 +86,7 @@ def getAbono(request):
     elif check_keys(data, ['day', 'month']):
         res['payments'], status = findAbono(data, abonosTable)
     else:
-        res = {'message':'ERROR. We expect id_event or id_ticket (or both) in the JSON request. Or, by day, month, type'}
+        res = {'message':'ERROR. Se espera el ID del evento o del ticket (o ambos) en la petición JSON. O, por "day", "month", "type"'}
         status = 400
     return HttpResponse([res], content_type='application/json', status=status)
 
@@ -105,12 +105,12 @@ def delAbono(request):
 
         # Check if the deletion was successful
         if res.deleted_count == 1:
-            message = 'Event deleted successfully.'
+            message = 'Abono eliminado satisfactoriamente.'
         else:
-            message = 'Payment not found or wrong id_ticket'
+            message = 'Abono no encontrado o ID de ticket equivocado'
             status = 404
     else:
-        message = 'Not id_ticket in JSON'
+        message = 'No ID de ticket en JSON'
         status = 400
     json_data = json_util.dumps([{"message": message}])
     

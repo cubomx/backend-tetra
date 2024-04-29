@@ -8,11 +8,11 @@ import pandas as pd
 def search(query, collection):
     return list(collection.find(query))
 
-def searchWithProjection(query, projection, collection):
+def searchWithProjection(query, projection, collection, errorMessage):
     res = list(collection.find (query, projection))
     if not res:
         status = 404
-        res = [{'message' : 'ERROR. Payment not found'}]
+        res = [{'message' : errorMessage}]
         return (res, status)
     else:
         return (res, 200) 
@@ -59,13 +59,12 @@ def check_keys(data, expected_keys):
 
 def updateData(collection, query, updateQuery):
     res = collection.update_one(query, updateQuery)
+    response = {}
 
     update_result = res.raw_result
-    
 
-    response = {"Matched" : "{} rows".format(update_result["n"])}
-    response["Modified"] = "{} rows".format(update_result["nModified"])
-    print(update_result['ok'])
+    response['message'] = "Se modifico satisfactoriamente {} rows".format(update_result["nModified"])
+    response['result'] = update_result["nModified"]
 
     return response
 
@@ -87,6 +86,11 @@ def generateTicketNumber(bytes, date):
     random_start = secrets.token_hex(bytes)  
     randon_end = secrets.token_hex(bytes)
     id_ticket = [random_start] + date.split('-') + [randon_end]
+    return ''.join(id_ticket)
+
+def generateIDTicket(bytes, date):
+    random_end = secrets.token_hex(bytes)  
+    id_ticket = date + random_end
     return ''.join(id_ticket)
 
 def findAbono(query, collection):

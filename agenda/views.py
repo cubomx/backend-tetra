@@ -38,22 +38,22 @@ def addEvento(request):
         query = {'location': data['location'], 'day': data['day'], 'month' : data['month'], 'year' : data['year']}
         eventFound = search(query, collection)
         if eventFound:
-            message = 'Blocked spot'
+            message = 'Espacio no disponible'
             statusCode = 404
         else:
             data['id_event'] = id_event
-            data['inventory'] = []
+            data['expenses'] = []
             result = collection.insert_one(data)  
             
             if result.inserted_id:
-                status = 'successful.'
+                status = 'con éxito.'
                 res['id_event'] = id_event
                 statusCode = 200
             else:
-                status = 'failed.'
+                status = 'fallido.'
                 statusCode = 400 
 
-            message = 'Event added {}'.format(status)
+            message = 'Evento añadido {}'.format(status)
     res['message'] = message
     json_data = json_util.dumps([res])
     response = HttpResponse(json_data, content_type='application/json', status=statusCode)
@@ -74,10 +74,10 @@ def delEvento(request):
         res = collection.delete_one(data)
         # Check if the deletion was successful
         if res.deleted_count == 1:
-            message = 'Event deleted successfully.'
+            message = 'Evento eliminado exitosamente.'
             statusCode = 200
         else:
-            message = 'Event not found or wrong id_event'
+            message = 'Evento no encontrado o ID de evento equivocado'
             statusCode = 404
 
     json_data = json_util.dumps([{"message": message}])
@@ -101,12 +101,13 @@ def getEvento(request):
     elif checkData(data, ['id_event'], {'id_event' : str})[0]:
         res['events'] = [(collection.find_one({'id_event' : data['id_event']}, projection))]
     else:
-        res = [{'message':'Missing filter or mispelled'}]
+        res = [{'message':'Faltan filtros o estan incorrectos. Filtros: name, type, year, day, month...'}]
         statusCode = 400
-    if res == None or res == []:
-        res = [{'message':'Not data found with the filters asked'}]
+    if res['events'] == [None]:
+        res = [{'message':' No información encontrada con los filtros usados'}]
         statusCode = 404
     elif checkData(data, ['excel'], {'excel' : str})[0]:
+        print(res)
         headers = {
             'name':'nombre', 'type':'categoria', 'year':'año', 'day':'día', 'month':'mes', 
             'location':'ubicacion', 'num_of_people':'invitados', 'cost':'costo', 'upfront':'adelanto'
@@ -131,7 +132,7 @@ def modifyEvento(request):
                          'day': data['day'], 'month' : data['month'], 'year' : data['year'], 
                          'id_event' : { '$ne' : data['id_event']}}
                 if search(query, collection):
-                    response = {'message':'Blocked spot. Cannot change event to the desired place and date'}
+                    response = {'message':'Espacio bloqueado. No se puede cambiar el evento a la fecha y lugar deseado.'}
                     statusCode = 404
                 else:
                     print("Not blocked")
@@ -140,11 +141,11 @@ def modifyEvento(request):
             elif not checkData(data, ['day', 'month', 'year', 'location'], {'location' : str, 'day' : int, 'month' : int, 'year' : int})[0]:
                 response = updateData(collection, {'id_event': data['id_event']}, { "$set" : data })
             else:
-                response = {'message':'Please if sending "location" or "day/month/year", send all four variables'}
+                response = {'message':'Por favor, si envías alguna de estas variables "location" o "day", "month, year", envía todas '}
                 statusCode = 400
 
     else:
-        response = {'message': 'Not id_event in JSON'}
+        response = {'message': 'No esta presente el ID del evento en JSON'}
         statusCode = 400
         
     json_data = json_util.dumps(response)
