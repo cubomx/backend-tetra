@@ -75,3 +75,27 @@ The app is going to be running on port 8000.
 - `/finanzas/delAbono`
     - JSON:
         - **id_ticket**: *str*
+- `/finanzas/addGasto`
+    - JSON:
+        - **id_event**: *str*
+        - **day** : *int*
+        - **month**: *int*
+        - **year**: *int*
+        - **location**: *str*
+        - **concept**: *str*
+        - **amount**: *int*
+        - **category**: *str*
+        - **expense_type**: *str*
+        - **buyer**: *str*
+        - **quantity**: *int*
+ `/finanzas/getGasto`
+    - JSON (any combination of filters):
+        - **filters**: dict
+            - **day** : *int*
+            - **month**: *int*
+            - **year**: *int*
+            - **category**: *str*
+            - **expense_type**: *str*
+    - JSON (get expenses for a specific event)
+        - **expenses**: dict
+            - **id_event**: *str* 
