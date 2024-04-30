@@ -3,6 +3,7 @@
 - Docker Desktop
 - WSL
 - Python3, Pip3
+- Postman (test requests)
 
 ## Setup
 1. Enable virtualization in your PC Bios.
@@ -58,3 +59,19 @@ The app is going to be running on port 8000.
         - **num_of_people**: *int*
         - **cost**: *float*
         - **upfront**: *float*
+- `/finanzas/addAbono`
+    - JSON:
+        - **id_event**: *str*
+        - **payer**: *str*
+        - **quantity**: *float* 
+- `/finanzas/getAbono`
+    - JSON:
+        - **id_event**: *str*
+        - **id_ticket**: *str*
+    - JSON (you can use any combination of this filters):
+        - **type** : *str* 
+        - **day** : *int*
+        - **month**: *int*
+- `/finanzas/delAbono`
+    - JSON:
+        - **id_ticket**: *str*
