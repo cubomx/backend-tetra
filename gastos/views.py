@@ -94,8 +94,20 @@ def getGasto(request):
             if statusCode == 200:
                 for i in result:
                     for expense in i['expenses']:
-                        print(expense)
+                        id_expense = expense['id_expense']
+                        print(id_expense)
+                        query = {'id_expense':id_expense}
+                        fields_excluded = ['_id','quantity', 'allocation', 'available', 'id_expense', 'amount']
+                        field_query = {field:0 for field in fields_excluded}
+                        expense_data, newCode = checkSearch(query, field_query, gastosTable, 'Gasto no encontrado {}'.format(id_expense), 'expenses', 'message') 
+                        if newCode == 200:
+                            for data in expense_data:
+                                expense.update(data)
+                        # get the cost proportionated cost 
+                        expense['amount'] = expense['portion'] * expense['unit_price']
                         res['expenses'].append(expense)
+            else:
+                res['message'] = result
         else:
             res['message'] = 'ID de evento no proporcionado'
             statusCode = 400
