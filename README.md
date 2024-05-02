@@ -44,6 +44,12 @@ The app is going to be running on port 8000.
         - **cost**: *float*
         - **upfront**: *float*
     or simplely by sending **id_event**: *str*
+- `/agenda/verAgenda`
+    - JSON:  
+        - **day** : *int*
+        - **month**: *int*
+        - **year**: *int*    
+        - **isFuture**: *bool* (future is inclusive)
 - `/agenda/delEvento`
     - JSON: 
         - **id_event**: *str*
@@ -88,7 +94,7 @@ The app is going to be running on port 8000.
         - **expense_type**: *str*
         - **buyer**: *str*
         - **quantity**: *int*
- `/finanzas/getGasto`
+- `/finanzas/getGasto`
     - JSON (any combination of filters):
         - **filters**: dict
             - **day** : *int*
@@ -99,3 +105,8 @@ The app is going to be running on port 8000.
     - JSON (get expenses for a specific event)
         - **expenses**: dict
             - **id_event**: *str* 
+- `/finanzas/modifyGasto`
+    - JSON:
+        - **id_event**: *str* 
+        - **id_expense**: *str* 
+        - **portion**: *float*
