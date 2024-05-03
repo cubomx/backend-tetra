@@ -64,7 +64,20 @@ def TokenVerification(request):
             return (request, 200)
 
         except ExpiredSignatureError:
-            return ({'error': 'Expired token'}, 401)
+            return ({'error': 'Token  expirado'}, 401)
 
         except Exception as e:
-            return ({'error': 'Invalid token'}, 401)
+            return ({'error': 'Token invalido'}, 401)
+    return ({'error': 'Token  no encontrado'},400)
+
+def verifyRole(table, allowed_roles, request, projection):
+    result, statusCode = TokenVerification(request)
+    if statusCode != 200:
+        return (result, statusCode)
+    else:
+        resToken = table.find_one({'token': request.token}, projection)
+        if resToken:
+            if resToken['role'] in allowed_roles:
+                return ('Good', 200)
+            else:
+                return ({'message': 'El usuario con el rol {} no tiene permisos para realizar esta accion'.format()}, 401)

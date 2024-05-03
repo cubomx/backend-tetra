@@ -6,9 +6,11 @@ from bson import json_util
 import sys
 sys.path.append('../')
 from helpers.helpers import search, getIDEvento, checkData, check_keys, updateData, returnExcel, searchWithProjection
+from helpers.admin import verifyRole
 client =  pymongo.MongoClient('localhost', 27017, username='root', password='example')
 db = client['tetra']
 agendaTable = db['agenda']
+tokensTable = db['tokens']
 
 projection = {"_id": False}
 
@@ -24,17 +26,20 @@ def index(request):
 def agenda(request):
     if not request.content_type == 'application/json':\
         return HttpResponse([[{'message':'missing JSON'}]], content_type='application/json', status=400)
+
     data = json.loads(request.body.decode('utf-8'))
-    statusCode = 200
 
     keys = ['day', 'month', 'year', 'isFuture'] 
     types = {'day' : int, 'month' : int, 'year' : int, 'isFuture':bool}
 
     isDataCorrect, message = checkData(data, keys, types)
-    statusCode = 400
     res = {}
-    
-    if isDataCorrect:
+
+    allowed_roles = {'admin', 'secretary', 'finance', 'inventary'}
+    result, statusCode = verifyRole(tokensTable, allowed_roles, request, projection)
+    if statusCode != 200:
+        res = result
+    elif isDataCorrect:
         target_year, target_month, target_day = data['year'], data['month'], data['day']
         future = data['isFuture']
         query = {}
@@ -86,7 +91,11 @@ def addEvento(request):
     id_event = getIDEvento(data, 4)
     res = {}
 
-    if isDataCorrect:
+    allowed_roles = {'admin', 'secretary'}
+    result, statusCode = verifyRole(tokensTable, allowed_roles, request, projection)
+    if statusCode != 200:
+        res = result
+    elif isDataCorrect:
         query = {'location': data['location'], 'day': data['day'], 'month' : data['month'], 'year' : data['year']}
         eventFound = search(query, agendaTable)
         if eventFound:
@@ -121,7 +130,11 @@ def delEvento(request):
     
     isDataCorrect, message = checkData(data, keys, {'id_event' : str})
 
-    if isDataCorrect:
+    allowed_roles = {'admin'}
+    result, statusCode = verifyRole(tokensTable, allowed_roles, request, projection)
+    if statusCode != 200:
+        res = result
+    elif isDataCorrect:
         res = agendaTable.delete_one(data)
         # Check if the deletion was successful
         if res.deleted_count == 1:
@@ -146,7 +159,12 @@ def getEvento(request):
 
     expected_keys = ['name', 'type', 'year', 'day', 'month', 'location', 'num_of_people', 'cost', 'upfront', 'excel']
     res = {}
-    if check_keys(data, expected_keys):
+    allowed_roles = {'admin', 'secretary', 'finance', 'inventary'}
+    result, statusCode = verifyRole(tokensTable, allowed_roles, request, projection)
+
+    if statusCode != 200:
+        res = result
+    elif check_keys(data, expected_keys):
         res['events'] = list(agendaTable.find(data, projection))
     elif checkData(data, ['id_event'], {'id_event' : str})[0]:
         res['events'] = [(agendaTable.find_one({'id_event' : data['id_event']}, projection))]
@@ -172,30 +190,34 @@ def modifyEvento(request):
     expected_keys = ['name',  'type', 'day', 'month', 'year', 'location', 'num_of_people', 'cost', 'upfront', 'id_event']
     statusCode = 200
 
-    response = {}
-    print(data)
-    if checkData(data, ['id_event'], {'id_event' : str})[0]:
+    res = {}
+
+    allowed_roles = {'admin', 'secretary'}
+    result, statusCode = verifyRole(tokensTable, allowed_roles, request, projection)
+    if statusCode != 200:
+        res = result
+    elif checkData(data, ['id_event'], {'id_event' : str})[0]:
         if check_keys(data, expected_keys):
             if checkData(data, ['location', 'day', 'month', 'year'], {'location' : str, 'day' : int, 'month' : int, 'year' : int})[0]:
                 query = {'location': data['location'], 
                          'day': data['day'], 'month' : data['month'], 'year' : data['year'], 
                          'id_event' : { '$ne' : data['id_event']}}
                 if search(query, agendaTable):
-                    response = {'message':'Espacio bloqueado. No se puede cambiar el evento a la fecha y lugar deseado.'}
+                    res = {'message':'Espacio bloqueado. No se puede cambiar el evento a la fecha y lugar deseado.'}
                     statusCode = 404
                 else:
                     print("Not blocked")
-                    response = updateData(agendaTable, {'id_event': data['id_event']}, { "$set" : data })
+                    res = updateData(agendaTable, {'id_event': data['id_event']}, { "$set" : data })
             # checking if some of the date/location variables are present
             elif not checkData(data, ['day', 'month', 'year', 'location'], {'location' : str, 'day' : int, 'month' : int, 'year' : int})[0]:
-                response = updateData(agendaTable, {'id_event': data['id_event']}, { "$set" : data })
+                res = updateData(agendaTable, {'id_event': data['id_event']}, { "$set" : data })
             else:
-                response = {'message':'Por favor, si envías alguna de estas variables "location" o "day", "month, year", envía todas '}
+                res = {'message':'Por favor, si envías alguna de estas variables "location" o "day", "month, year", envía todas '}
                 statusCode = 400
 
     else:
-        response = {'message': 'No esta presente el ID del evento en JSON'}
+        res = {'message': 'No esta presente el ID del evento en JSON'}
         statusCode = 400
         
-    json_data = json_util.dumps(response)
+    json_data = json_util.dumps(res)
     return HttpResponse(json_data, content_type='application/json', status=statusCode)

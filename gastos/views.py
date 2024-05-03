@@ -4,6 +4,7 @@ import json
 from bson import json_util
 import sys
 sys.path.append('../')
+from helpers.admin import verifyRole
 from helpers.helpers import checkData, generateIDTicket, search, check_keys, searchWithProjection, updateData
 
 client =  pymongo.MongoClient('localhost', 27017, username='root', password='example')
@@ -11,6 +12,7 @@ db = client['tetra']
 abonosTable = db['abonos']
 agendaTable = db['agenda']
 gastosTable = db['gastos']
+tokensTable = db['tokens']
 projection = {"_id": False}
 
 
@@ -26,7 +28,11 @@ def addGasto(request):
     res = {}
     result = None
 
-    if not checkData(data, ['id_event'], {'id_event' : str})[0]:
+    allowed_roles = {'admin', 'finance'}
+    result, statusCode = verifyRole(tokensTable, allowed_roles, request, projection)
+    if statusCode != 200:
+        res = result
+    elif not checkData(data, ['id_event'], {'id_event' : str})[0]:
         res['message'] = 'ID de evento no encontrado'
     else:
         id_event = data['id_event']
@@ -84,8 +90,12 @@ def getGasto(request):
     data = json.loads(request.body.decode('utf-8'))
     res = {'expenses':[]}
     statusCode = 200
-    
-    if checkData(data, ['expenses'], {'expenses' : dict})[0]:
+
+    allowed_roles = {'admin', 'finance', 'inventary', 'secretary'}
+    result, statusCode = verifyRole(tokensTable, allowed_roles, request, projection)
+    if statusCode != 200:
+        res = result
+    elif checkData(data, ['expenses'], {'expenses' : dict})[0]:
         if checkData(data['expenses'], ['id_event'], {'id_event':str})[0]:
             id_event = data['expenses']['id_event']
             query = {'id_event': id_event}
@@ -111,9 +121,7 @@ def getGasto(request):
         else:
             res['message'] = 'ID de evento no proporcionado'
             statusCode = 400
-        
     elif checkData(data, ['filters'], {'filters' : dict})[0]:
-
         if check_keys(data['filters'], ['day', 'month', 'year', 'category', 'expense_type']):
             res, statusCode = checkSearch(data['filters'], projection, gastosTable, 'ERROR: Gastos no encontrados', 'expenses', 'message')
     else:
@@ -164,15 +172,18 @@ def modifyGasto(request):
     data = json.loads(request.body.decode('utf-8'))
     res = {}
     statusCode = 200
-    
-    if checkData(data, ['id_event', 'id_expense', 'portion'], {'id_event' : str, 'id_expense' : str, 'portion':float})[0]:
+
+    allowed_roles = {'admin', 'finance'}
+    result, statusCode = verifyRole(tokensTable, allowed_roles, request, projection)
+    if statusCode != 200:
+        res = result
+    elif checkData(data, ['id_event', 'id_expense', 'portion'], {'id_event' : str, 'id_expense' : str, 'portion':float})[0]:
         #res['message'] = 'Correcta la data'
         id_event = data['id_event']
         id_expense = data['id_expense']
         portionDesire = data['portion']
         event = search({'id_event': id_event}, agendaTable)
-        statusCode = 200
-        
+        statusCode = 200  
         if event:
             print(event)
             portion = searchExpense(event[0]['expenses'], id_expense)
@@ -195,7 +206,6 @@ def modifyGasto(request):
                         res['message'] = 'No encontramos el gasto deseado {} para el evento'.format(id_expense, id_event)
                         statusCode = 404
             else:
-                
                 diff = portion - portionDesire
                 expense, statusCode = searchInExpense(id_expense)
                 available = expense[0]['available']
@@ -228,8 +238,6 @@ def modifyGasto(request):
     else:
         res['message'] = 'Parece que falta un dato por enviar: id_event, id_expense, portion'
         statusCode = 400
-
-    
 
     json_data = json_util.dumps(res)
     return HttpResponse(json_data, content_type='application/json', status=statusCode)
