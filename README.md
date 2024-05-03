@@ -110,3 +110,15 @@ The app is going to be running on port 8000.
         - **id_event**: *str* 
         - **id_expense**: *str* 
         - **portion**: *float*
+- `login`
+    - JSON:
+        - **email**: *str*
+        - **password**: *str*
+- `register`
+    - JSON:
+        - **name**: *str*
+        - **password**: *str*
+        - **email**: *str*
+        - **role**: *str* (admin, finance, secretary, inventary)
+    - Headers:
+        - **Bearer Token**
