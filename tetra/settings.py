@@ -32,6 +32,9 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'agenda',
+    'abonos',
+    'gastos',
+    'tetra',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -74,17 +77,18 @@ WSGI_APPLICATION = 'tetra.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-#DATABASES = {
-#        'default': {
-#            'ENGINE': 'django',
-#            'NAME': 'tetra',
-#            'ENFORCE_SCHEMA': False,
-#            'CLIENT': {
-#                'host': 'mongodb://root:example@localhost/tetra?retryWrites=true&w=majority'
-#            }  
-#        }
-#}
-
+'''DATABASES = {
+        'default': {
+            'ENGINE': 'djongo',
+            'NAME': 'tetra',
+            'ENFORCE_SCHEMA': False,
+            'CLIENT': {
+                'host': 'localhost',
+                'username': 'root',
+                'password':'example'
+            }  
+        }
+}'''
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
