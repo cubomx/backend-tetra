@@ -32,29 +32,23 @@ def agenda(request):
 
     isDataCorrect, message = checkData(data, keys, types)
     statusCode = 400
-    id_event = getIDEvento(data, 4)
     res = {}
     
-
     if isDataCorrect:
         target_year, target_month, target_day = data['year'], data['month'], data['day']
         future = data['isFuture']
         query = {}
         if future:
             query = {
-                '$or': [{'year': {'$gt': target_year}},
-                    {'$and': [{'year': target_year},
-                        {'$or': [{'month': {'$gt': target_month}},
-                            {'month': {'$eq': target_month}, 'day': {'$gte': target_day}}]}
-                    ]}
+            '$and': [{'year': {'$gte': target_year}},
+                    {'$or': [{'month': {'$gt': target_month}},
+                        {'month': {'$eq': target_month}, 'day': {'$gte': target_day}}]}
                 ]}
         else:
             query = {
-                '$or': [{'year': {'$lt': target_year}},
-                    {'$and': [{'year': target_year},
-                        {'$or': [{'month': {'$lt': target_month}},
-                            {'month': {'$eq': target_month}, 'day': {'$lt': target_day}}]}
-                    ]}
+                '$and': [{'year': {'$lte': target_year}},
+                    {'$or': [{'month': {'$lt': target_month}},
+                        {'month': {'$eq': target_month}, 'day': {'$lt': target_day}}]}
                 ]}
 
         result, statusCode = searchWithProjection(query, projection, agendaTable, 'No se encontraron eventos')

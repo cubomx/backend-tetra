@@ -24,6 +24,7 @@ urlpatterns = [
     path('finanzas/', include('gastos.urls')),
     path('finanzas/', include('abonos.urls')),
     path('agenda/', include('agenda.urls')),
-    path('login/', views.login, name='token_create'),
-    path('register/', views.register, name='create_user'),
+    path('login', views.login, name='token_create'),
+    path('register', views.register, name='create_user'),
+    path('users', views.users, name='get users' )
 ]
