@@ -63,7 +63,7 @@ def updateData(collection, query, updateQuery):
 
     update_result = res.raw_result
 
-    response['message'] = "Se modifico satisfactoriamente {} rows".format(update_result["nModified"])
+    response['message'] = "Se modifico satisfactoriamente {} registros".format(update_result["nModified"])
     response['result'] = update_result["nModified"]
 
     return response

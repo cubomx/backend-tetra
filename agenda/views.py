@@ -98,16 +98,16 @@ def addEvento(request):
             result = agendaTable.insert_one(data)  
             
             if result.inserted_id:
-                status = 'con éxito.'
+                status = 'con exito.'
                 res['id_event'] = id_event
                 statusCode = 200
             else:
                 status = 'fallido.'
                 statusCode = 400 
 
-            message = 'Evento añadido {}'.format(status)
+            message = 'Evento agregado {}'.format(status)
     res['message'] = message
-    json_data = json_util.dumps([res])
+    json_data = json_util.dumps(res)
     response = HttpResponse(json_data, content_type='application/json', status=statusCode)
     return response
 
@@ -154,7 +154,7 @@ def getEvento(request):
         res = [{'message':'Faltan filtros o estan incorrectos. Filtros: name, type, year, day, month...'}]
         statusCode = 400
     if res['events'] == [None]:
-        res = [{'message':' No información encontrada con los filtros usados'}]
+        res = [{'message':' No informacion encontrada con los filtros usados'}]
         statusCode = 404
     elif checkData(data, ['excel'], {'excel' : str})[0]:
         print(res)
@@ -176,6 +176,7 @@ def modifyEvento(request):
     print(data)
     if checkData(data, ['id_event'], {'id_event' : str})[0]:
         if check_keys(data, expected_keys):
+            print('hehe')
             if checkData(data, ['location', 'day', 'month', 'year'], {'location' : str, 'day' : int, 'month' : int, 'year' : int})[0]:
                 query = {'location': data['location'], 
                          'day': data['day'], 'month' : data['month'], 'year' : data['year'], 
@@ -190,9 +191,11 @@ def modifyEvento(request):
             elif not checkData(data, ['day', 'month', 'year', 'location'], {'location' : str, 'day' : int, 'month' : int, 'year' : int})[0]:
                 response = updateData(agendaTable, {'id_event': data['id_event']}, { "$set" : data })
             else:
-                response = {'message':'Por favor, si envías alguna de estas variables "location" o "day", "month, year", envía todas '}
+                response = {'message':'Por favor, si envias alguna de estas variables "location" o "day", "month, year", envia todas '}
                 statusCode = 400
-
+        else:
+            response={'message': 'Estas enviando datos de mas'}
+            statusCode = 400
     else:
         response = {'message': 'No esta presente el ID del evento en JSON'}
         statusCode = 400
