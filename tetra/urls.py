@@ -28,6 +28,9 @@ urlpatterns = [
     path('register', views.register, name='create_user'),
     path('users', views.users, name='get users' ),
     path('addTipoEvento', views.addEventType, name='add type of event'),
-    path('getTiposEvento', views.getEventTypes, name='get types of event'),
-    path('delTipoEvento', views.delEventType, name='del type of event')
+    path('getTiposEvento', views.getEventTypes, name='get types of events'),
+    path('delTipoEvento', views.delEventType, name='del type of event'),
+    path('addLugar', views.addLocation, name='add location of event'),
+    path('getLugares', views.getLocations, name='get locations of events'),
+    path('delLugar', views.delLocation, name='del location of event')
 ]
