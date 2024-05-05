@@ -39,11 +39,11 @@ def getIDEvento(data, bytes):
 def checkData(data, keys, types):
     for key in keys:
         if key not in data:
-            return (False, "Missing key {} in data sent".format(key))
+            return (False, "Falta llave {} en la informacion enviada".format(key))
         elif not isinstance(data[key], types[key]):
             print(type(data[key]),types[key] )
-            return (False, "Wrong type {} in key {}".format(type(data[key]), key))
-    return (True, "Data seems good")
+            return (False, "Tipo de data incorrecto {} en llave {}".format(type(data[key]), key))
+    return (True, "Los datos se ven bien")
 
 
 # check if contains keys between a range
@@ -98,7 +98,7 @@ def findAbono(query, collection):
     status = 200
     if not res:
         status = 404
-        res = [{'message' : 'ERROR. Payment not found'}]
+        res = [{'message' : 'ERROR. Pago no encontrado'}]
     return (res, status)
 
 def returnExcel(df, headers, filename, sheet_name):

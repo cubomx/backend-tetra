@@ -122,3 +122,14 @@ The app is going to be running on port 8000.
         - **role**: *str* (admin, finance, secretary, inventary)
     - Headers:
         - **Bearer Token**
+- `addTipoEvento`
+    - JSON:
+        - **type**: *str*
+- `getTipoEvento`
+    - JSON:
+        - Empty
+    - **Response JSON**:
+        - **types**: *list*
+- `delTipoEvento`
+    - JSON:
+        - **type**: *str*

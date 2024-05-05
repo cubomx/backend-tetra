@@ -4,13 +4,14 @@ import json
 from bson import json_util
 import sys
 sys.path.append('../')
-from helpers.helpers import checkData
+from helpers.helpers import checkData, updateData
 from helpers.admin import getToken, generateBearer, hashPassword, TokenVerification, verifyPassword
 from django.conf import settings
 
 client =  pymongo.MongoClient('localhost', 27017, username='root', password='example')
 db = client['tetra']
 usuariosTable = db['usuarios']
+adminTable = db['configuraciones']
 tokensTable = db['tokens']
 projection = {"_id": False}
 
@@ -21,10 +22,7 @@ def users(request):
     res['users'] = usuarios
 
     json_data = json_util.dumps(res)
-    response = HttpResponse(json_data, content_type='application/json', status=statusCode)
-    return response
-
-
+    return HttpResponse(json_data, content_type='application/json', status=statusCode)
 
 def login(request):
     if not request.content_type == 'application/json':
@@ -66,8 +64,7 @@ def login(request):
 
     
     json_data = json_util.dumps(res)
-    response = HttpResponse(json_data, content_type='application/json', status=statusCode)
-    return response
+    return HttpResponse(json_data, content_type='application/json', status=statusCode)
 
 def register(request):
     if not request.content_type == 'application/json':
@@ -117,5 +114,92 @@ def register(request):
         res = result 
     
     json_data = json_util.dumps(res)
-    response = HttpResponse(json_data, content_type='application/json', status=statusCode)
-    return response
+    return HttpResponse(json_data, content_type='application/json', status=statusCode)
+
+def addEventType(request):
+    if not request.content_type == 'application/json':
+        return HttpResponse([[{'message':'missing JSON'}]], content_type='application/json', status=400)
+    
+    data = json.loads(request.body.decode('utf-8'))
+    res = {}
+
+    isDataCorrect, message = checkData(data, ['type'], {'type':str})
+    statusCode = 200
+    if isDataCorrect:
+        query = { "types": { '$exists': True } }
+        result = adminTable.find_one(query)
+        if result != None:
+            # check duplicates
+            if adminTable.find_one({'types':data['type']}) != None:
+                print("yupi")
+                statusCode = 406
+                res['message'] = 'El tipo de evento {} ya esta disponible para seleccionar'.format(data['type'])
+            else:
+                update_query = {'$addToSet': {"types": data['type']}}
+                result = updateData(adminTable, query, update_query)
+                if result['result'] > 0:
+                    res['message'] = 'Fue agregado con exito el nuevo tipo de evento {}'.format(data['type'])
+                else:
+                    statusCode = 500
+                    res['message'] = 'Hubo un error al querer insertar el nuevo tipo de evento {}'.format(data['type'])
+        else:
+            resultInsert = adminTable.insert_one({'types': [data['type']]})
+            if resultInsert.inserted_id:
+                res['message'] = 'Fue agregado con exito el nuevo tipo de evento {}'.format(data['type'])
+            else:
+                statusCode = 500
+                res['message'] = 'Hubo un error al querer insertar el nuevo tipo de evento {}'.format(data['type'])
+    else:
+        statusCode = 400
+        res['message'] = message
+
+    json_data = json_util.dumps(res)
+    return HttpResponse(json_data, content_type='application/json', status=statusCode)
+
+
+
+def addLocation(request):
+    return
+
+def getEventTypes(request):
+    res = {}
+    statusCode = 200
+    query = { "types": { '$exists': True } }
+    result = adminTable.find_one(query)
+    if result != None:
+        print(result)
+        res['types'] = result['types']
+    else:
+        res['message'] = 'No se encontro ningun tipo de evento, dile al administrador que agregue tipos'
+        statusCode = 404
+
+    json_data = json_util.dumps(res)
+    return HttpResponse(json_data, content_type='application/json', status=statusCode)
+
+def getLocation(request):
+    return
+
+def delEventType(request):
+    if not request.content_type == 'application/json':
+        return HttpResponse([[{'message':'missing JSON'}]], content_type='application/json', status=400)
+    
+    data = json.loads(request.body.decode('utf-8'))
+    res = {}
+
+    isDataCorrect, message = checkData(data, ['type'], {'type':str})
+    statusCode = 200
+    if isDataCorrect:
+        query = { "types": { '$exists': True } }
+        delUpdate = {'$pull': {'types': data['type']}}
+        result = updateData(adminTable, query, delUpdate)
+        if result['result'] > 0:
+            res['message'] = 'Se elimino el tipo de evento {} satisfactoriamente'.format(data['type'])
+        else:
+            res['message'] = 'Hubo un error al eliminar el tipo de evento {}'.format(data['type'])
+            statusCode = 500
+    else:
+        statusCode = 400
+        res['message'] = message
+
+    json_data = json_util.dumps(res)
+    return HttpResponse(json_data, content_type='application/json', status=statusCode)
