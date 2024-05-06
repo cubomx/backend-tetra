@@ -87,25 +87,30 @@ def addEvento(request):
     res = {}
 
     if isDataCorrect:
-        query = {'location': data['location'], 'day': data['day'], 'month' : data['month'], 'year' : data['year']}
-        eventFound = search(query, agendaTable)
-        if eventFound:
-            message = 'Espacio no disponible'
-            statusCode = 404
-        else:
-            data['id_event'] = id_event
-            data['expenses'] = []
-            result = agendaTable.insert_one(data)  
-            
-            if result.inserted_id:
-                status = 'con exito.'
-                res['id_event'] = id_event
-                statusCode = 200
-            else:
-                status = 'fallido.'
-                statusCode = 400 
+        if data['cost'] < data['upfront']:
+            statusCode = 400
+            message = 'El pago del evento {} es menor al pago inicial {}'.format(data['cost'], data['upfront'])
+        else:  
 
-            message = 'Evento agregado {}'.format(status)
+            query = {'location': data['location'], 'day': data['day'], 'month' : data['month'], 'year' : data['year']}
+            eventFound = search(query, agendaTable)
+            if eventFound:
+                message = 'Espacio no disponible'
+                statusCode = 404
+            else:
+                data['id_event'] = id_event
+                data['expenses'] = []
+                result = agendaTable.insert_one(data)  
+                
+                if result.inserted_id:
+                    status = 'con exito.'
+                    res['id_event'] = id_event
+                    statusCode = 200
+                else:
+                    status = 'fallido.'
+                    statusCode = 400 
+
+                message = 'Evento agregado {}'.format(status)
     res['message'] = message
     json_data = json_util.dumps(res)
     response = HttpResponse(json_data, content_type='application/json', status=statusCode)
@@ -173,10 +178,14 @@ def modifyEvento(request):
     statusCode = 200
 
     response = {}
+    wrongCosts = False
     print(data)
     if checkData(data, ['id_event'], {'id_event' : str})[0]:
-        if check_keys(data, expected_keys):
-            print('hehe')
+        if check_keys(data, ['cost', 'upfront']):
+            if data['cost'] < data['upfront']:
+                statusCode = 400
+                response['message'] = 'El pago del evento {} es menor al pago inicial {}'.format(data['cost'], data['upfront'])
+        if statusCode == 200 and check_keys(data, expected_keys):
             if checkData(data, ['location', 'day', 'month', 'year'], {'location' : str, 'day' : int, 'month' : int, 'year' : int})[0]:
                 query = {'location': data['location'], 
                          'day': data['day'], 'month' : data['month'], 'year' : data['year'], 
