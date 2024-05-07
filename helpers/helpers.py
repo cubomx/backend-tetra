@@ -17,6 +17,15 @@ def searchWithProjection(query, projection, collection, errorMessage):
     else:
         return (res, 200) 
     
+def searchWithPagination(pipeline, projection, collection, errorMessage):
+    res = collection.aggregate(pipeline, projection)
+    if not res:
+        status = 404
+        res = [{'message' : errorMessage}]
+        return (res, status)
+    else:
+        return (res, 200) 
+    
 def deleteExtraQueries(data, expected_keys):
         # Get the keys of the JSON object
     data_keys = data.keys()

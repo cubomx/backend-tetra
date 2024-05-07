@@ -1,3 +1,4 @@
+import math
 from django.http import HttpResponse, FileResponse
 import pandas as pd
 import pymongo
@@ -21,6 +22,44 @@ def index(request):
     response = HttpResponse(json_data, content_type='application/json')
     return response
 
+def calculatePagination(request):
+    statusCode = 200
+    res = {}
+    if request.method == 'GET':
+        # Get parameters from the request
+        quantity = request.GET.get('quantity')
+        day = request.GET.get('day')
+        month = request.GET.get('month')
+        year = request.GET.get('year')
+        isFuture = request.GET.get('isFuture')
+
+        if quantity == None or day == None or month == None or year == None or isFuture == None:
+            res['message'] = 'Faltan datos por enviar: collection, quantity, day, month, year, isFuture'
+            
+        else:
+            query = None
+            if isFuture=='yes':
+                print('si')
+                query = {
+                '$and': [{'year': {'$gte': year}},
+                        {'$or': [{'month': {'$gt': month}},
+                            {'month': {'$eq': month}, 'day': {'$gte': day}}]}
+                    ]}
+            else:
+                query = {
+                    '$and': [{'year': {'$lte': year}},
+                        {'$or': [{'month': {'$lt': month}},
+                            {'month': {'$eq': month}, 'day': {'$lt': day}}]}
+                    ]}
+            print(query)
+            res['pages'] = math.ceil(agendaTable.count_documents(query) / int(quantity))
+
+    else:
+        res['message'] = 'Metodo no permitido {}'.format(request.method)
+        statusCode = 405
+    json_data = json_util.dumps(res)
+    return HttpResponse(json_data, content_type='application/json', status=statusCode)
+
 def agenda(request):
     if not request.content_type == 'application/json':\
         return HttpResponse([[{'message':'missing JSON'}]], content_type='application/json', status=400)
@@ -35,7 +74,9 @@ def agenda(request):
     res = {}
     
     if isDataCorrect:
+        
         target_year, target_month, target_day = data['year'], data['month'], data['day']
+        print(target_month)
         future = data['isFuture']
         query = {}
         if future:
@@ -78,7 +119,7 @@ def addEvento(request):
     data = json.loads(request.body.decode('utf-8'))
     keys = ['name',  'type', 'day', 'month', 'year', 'location', 'num_of_people', 'cost', 'upfront']
     types = {'name': str, 'type': str, 'day' : int, 'month' : int, 'year' : int,  
-             'location' : str, 'num_of_people' : int, 'cost': float, 'upfront': float         
+             'location' : str, 'num_of_people' : int, 'cost': int, 'upfront': int         
     }
 
     isDataCorrect, message = checkData(data, keys, types)
@@ -169,7 +210,8 @@ def getEvento(request):
         }
         df = pd.DataFrame(res['events'])
         return returnExcel(df, headers, 'eventos', 'detalles')
-    return HttpResponse([res], content_type='application/json', status=statusCode)
+    json_data = json_util.dumps(res)
+    return HttpResponse(json_data, content_type='application/json', status=statusCode)
 
 
 def modifyEvento(request):
