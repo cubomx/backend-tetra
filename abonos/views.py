@@ -64,7 +64,6 @@ def getAbono(request):
         result, status = findAbono(data, abonosTable)
         if status != 200: 
             res = result
-            print("hei")
         else:
             res['payments'] = result
     # check by date
@@ -88,7 +87,8 @@ def getAbono(request):
     else:
         res = {'message':'ERROR. Se espera el ID del evento o del ticket (o ambos) en la petición JSON. O, por "day", "month", "type"'}
         status = 400
-    return HttpResponse([res], content_type='application/json', status=status)
+    json_data = json_util.dumps(res)
+    return HttpResponse(json_data, content_type='application/json', status=status)
 
 def delAbono(request):
     if not request.content_type == 'application/json':\

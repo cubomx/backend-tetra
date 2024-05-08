@@ -107,7 +107,7 @@ def findAbono(query, collection):
     status = 200
     if not res:
         status = 404
-        res = [{'message' : 'ERROR. Pago no encontrado'}]
+        res = {'message' : 'Pagos no encontrados'}
     return (res, status)
 
 def returnExcel(df, headers, filename, sheet_name):
