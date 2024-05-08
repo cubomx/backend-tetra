@@ -49,6 +49,13 @@ def checkData(data, keys, types):
     for key in keys:
         if key not in data:
             return (False, "Falta llave {} en la informacion enviada".format(key))
+        if isinstance(types[key], list):
+            isGood = False
+            for type_ in types[key]:
+                if isinstance(data[key], type_):
+                    isGood = True
+            if not isGood:
+                return (False, "Tipo de data incorrecto {} en llave {}".format(type(data[key]), type_))
         elif not isinstance(data[key], types[key]):
             print(type(data[key]),types[key] )
             return (False, "Tipo de data incorrecto {} en llave {}".format(type(data[key]), key))

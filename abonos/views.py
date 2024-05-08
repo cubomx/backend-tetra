@@ -15,10 +15,11 @@ agendaTable = db['agenda']
 def addAbono(request): 
     data = json.loads(request.body.decode('utf-8'))
     keys = ['id_event', 'quantity', 'payer']
-    types = {'id_event' : str, 'quantity' : float, 'payer' : str}
+    types = {'id_event' : str, 'quantity' : [float, int], 'payer' : [str]}
 
     statusCode = 200
     isDataCorrect, message = checkData(data, keys, types)
+    res={}
 
     if isDataCorrect:
         id_event = data['id_event']
@@ -31,25 +32,25 @@ def addAbono(request):
            data['id_ticket'] = id_ticket
            data['day'], data['month'], data['year']  = [int(x) for x in getDate().split('-')]
     
-           res = abonosTable.insert_one(data)
+           result = abonosTable.insert_one(data)
            
-           if res.inserted_id:
+           if result.inserted_id:
                status = "satisfactoriamente. Ticket ID {}".format(id_ticket)
            else:
                status = "fallido." 
                statusCode = 404
-           message = 'Ticket agregado {}'.format(status)
+           res['message'] = 'Ticket agregado {}'.format(status)
         else:
-            message = 'No se encontro el evento por el ID: {}'.format(data['id_event'])
+            res['message'] = 'No se encontro el evento por el ID: {}'.format(data['id_event'])
             statusCode = 400
+    else:
+        res['message'] = message 
+        statusCode = 400
 
 
     
-    json_data = json_util.dumps([{"message": message}])
-    response = HttpResponse(json_data, content_type='application/json', status=statusCode)
-    return response
-
-
+    json_data = json_util.dumps(res)
+    return HttpResponse(json_data, content_type='application/json', status=statusCode)
 
 def getAbono(request):
     if not request.content_type == 'application/json':\
