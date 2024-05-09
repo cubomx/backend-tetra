@@ -18,13 +18,14 @@ def getToken(authorization_header):
         # Authorization header is missing
         return ({'error': 'Falta token'}, 400)
     
-def generateBearer(secret_key, expiration_time=3600):
+def generateBearer(secret_key, role, expiration_time=3600):
     exp_time = datetime.utcnow() + timedelta(seconds=expiration_time)
 
     # Create the payload for the JWT token
     payload = {
         'exp': exp_time,
-        'iat': datetime.utcnow()
+        'iat': datetime.utcnow(),
+        'role': role
         # You can add other claims as needed
     }
 
@@ -68,3 +69,13 @@ def TokenVerification(request):
 
         except Exception as e:
             return ({'error': 'Invalid token'}, 401)
+        
+def verifyRole(request, allowed_roles):
+    result, statusCode = TokenVerification(request)
+    if statusCode != 200:
+        return (result, statusCode)
+    else:
+        if result.decoded_token['role'] in allowed_roles:
+            return ('Good', 200)
+        else:
+            return ({'message': 'El usuario con el rol {} no tiene permisos para realizar esta accion'.format()}, 401)

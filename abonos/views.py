@@ -5,6 +5,7 @@ from bson import json_util
 import sys
 sys.path.append('../')
 from helpers.helpers import checkData, search, generateTicketNumber, getDate, check_keys, searchWithProjection, findAbono, deleteExtraQueries
+from helpers.admin import verifyRole
 
 client =  pymongo.MongoClient('localhost', 27017, username='root', password='example')
 db = client['tetra']
@@ -21,7 +22,14 @@ def addAbono(request):
     isDataCorrect, message = checkData(data, keys, types)
     res={}
 
-    if isDataCorrect:
+    allowed_roles = {'admin', 'finance'}
+    result, statusCode = verifyRole(request, allowed_roles)
+
+    res=result
+
+    if statusCode != 200:
+        res = result
+    elif isDataCorrect:
         id_event = data['id_event']
         query = {"id_event": id_event}
         eventFound = search(query, agendaTable)
@@ -44,7 +52,7 @@ def addAbono(request):
             res['message'] = 'No se encontro el evento por el ID: {}'.format(data['id_event'])
             statusCode = 400
     else:
-        res['message'] = message 
+        res['message'] = result 
         statusCode = 400
 
 
@@ -60,8 +68,13 @@ def getAbono(request):
     status = 200
     expected_keys = ['id_event', 'id_ticket']
     res = {}
+
+    allowed_roles = {'admin', 'finance', 'inventary', 'secretary'}
+    result, statusCode = verifyRole(request, allowed_roles)
+    if statusCode != 200:
+        res = result
     # check by ids
-    if check_keys(data, expected_keys):
+    elif check_keys(data, expected_keys):
         result, status = findAbono(data, abonosTable)
         if status != 200: 
             res = result
@@ -101,7 +114,11 @@ def delAbono(request):
     isDataCorrect = check_keys(data, keys)
     status = 200
 
-    if isDataCorrect:
+    allowed_roles = {'admin', 'finance'}
+    result, statusCode = verifyRole(request, allowed_roles)
+    if statusCode != 200:
+        res = result
+    elif isDataCorrect:
         res = abonosTable.delete_one(data)
 
         # Check if the deletion was successful

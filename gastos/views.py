@@ -5,6 +5,7 @@ from bson import json_util
 import sys
 sys.path.append('../')
 from helpers.helpers import checkData, generateIDTicket, search, check_keys, searchWithProjection, updateData
+from helpers.admin import verifyRole
 
 client =  pymongo.MongoClient('localhost', 27017, username='root', password='example')
 db = client['tetra']
@@ -26,7 +27,11 @@ def addGasto(request):
     res = {}
     result = None
 
-    if not checkData(data, ['id_event'], {'id_event' : str})[0]:
+    allowed_roles = {'admin', 'finance'}
+    result, statusCode = verifyRole(request, allowed_roles)
+    if statusCode != 200:
+        res = result
+    elif not checkData(data, ['id_event'], {'id_event' : str})[0]:
         res['message'] = 'ID de evento no encontrado'
     else:
         id_event = data['id_event']
@@ -85,7 +90,11 @@ def getGasto(request):
     res = {'expenses':[]}
     statusCode = 200
     
-    if checkData(data, ['expenses'], {'expenses' : dict})[0]:
+    allowed_roles = {'admin', 'finance', 'inventary', 'secretary'}
+    result, statusCode = verifyRole(request, allowed_roles)
+    if statusCode != 200:
+        res = result
+    elif checkData(data, ['expenses'], {'expenses' : dict})[0]:
         if checkData(data['expenses'], ['id_event'], {'id_event':str})[0]:
             id_event = data['expenses']['id_event']
             query = {'id_event': id_event}
@@ -164,8 +173,11 @@ def modifyGasto(request):
     data = json.loads(request.body.decode('utf-8'))
     res = {}
     statusCode = 200
-    
-    if checkData(data, ['id_event', 'id_expense', 'portion'], {'id_event' : str, 'id_expense' : str, 'portion':float})[0]:
+    allowed_roles = {'admin', 'finance'}
+    result, statusCode = verifyRole(request, allowed_roles)
+    if statusCode != 200:
+        res = result
+    elif checkData(data, ['id_event', 'id_expense', 'portion'], {'id_event' : str, 'id_expense' : str, 'portion':float})[0]:
         #res['message'] = 'Correcta la data'
         id_event = data['id_event']
         id_expense = data['id_expense']

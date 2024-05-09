@@ -7,6 +7,8 @@ from bson import json_util
 import sys
 sys.path.append('../')
 from helpers.helpers import search, getIDEvento, checkData, check_keys, updateData, returnExcel, searchWithProjection
+from helpers.admin import verifyRole
+
 client =  pymongo.MongoClient('localhost', 27017, username='root', password='example')
 db = client['tetra']
 agendaTable = db['agenda']
@@ -73,8 +75,11 @@ def agenda(request):
     statusCode = 400
     res = {}
     
-    if isDataCorrect:
-        
+    allowed_roles = {'admin', 'secretary', 'finance', 'inventary'}
+    result, statusCode = verifyRole(request, allowed_roles)
+    if statusCode != 200:
+        res = result
+    elif isDataCorrect:
         target_year, target_month, target_day = data['year'], data['month'], data['day']
         print(target_month)
         future = data['isFuture']
@@ -91,13 +96,11 @@ def agenda(request):
                     {'$or': [{'month': {'$lt': target_month}},
                         {'month': {'$eq': target_month}, 'day': {'$lt': target_day}}]}
                 ]}
-
         result, statusCode = searchWithProjection(query, projection, agendaTable, 'No se encontraron eventos')
         if statusCode == 200:
             res['events'] = []
             for event in result:
-                res['events'].append(event)
-                
+                res['events'].append(event)      
         else:
             error = 'despues' if future else 'anteriores'
                
@@ -126,8 +129,11 @@ def addEvento(request):
     statusCode = 400
     id_event = getIDEvento(data, 4)
     res = {}
-
-    if isDataCorrect:
+    allowed_roles = {'admin', 'secretary'}
+    result, statusCode = verifyRole(request, allowed_roles)
+    if statusCode != 200:
+        message = result['message']
+    elif isDataCorrect:
         if data['cost'] < data['upfront']:
             statusCode = 400
             message = 'El pago del evento {} es menor al pago inicial {}'.format(data['cost'], data['upfront'])
@@ -167,7 +173,11 @@ def delEvento(request):
     
     isDataCorrect, message = checkData(data, keys, {'id_event' : str})
 
-    if isDataCorrect:
+    allowed_roles = {'admin'}
+    result, statusCode = verifyRole(request, allowed_roles)
+    if statusCode != 200:
+        res = result
+    elif isDataCorrect:
         res = agendaTable.delete_one(data)
         # Check if the deletion was successful
         if res.deleted_count == 1:
@@ -192,7 +202,12 @@ def getEvento(request):
 
     expected_keys = ['name', 'type', 'year', 'day', 'month', 'location', 'num_of_people', 'cost', 'upfront', 'excel']
     res = {}
-    if check_keys(data, expected_keys):
+    allowed_roles = {'admin', 'secretary', 'finance', 'inventary'}
+    result, statusCode = verifyRole(request, allowed_roles)
+
+    if statusCode != 200:
+        res = result
+    elif check_keys(data, expected_keys):
         res['events'] = list(agendaTable.find(data, projection))
     elif checkData(data, ['id_event'], {'id_event' : str})[0]:
         res['events'] = [(agendaTable.find_one({'id_event' : data['id_event']}, projection))]
@@ -220,9 +235,11 @@ def modifyEvento(request):
     statusCode = 200
 
     response = {}
-    wrongCosts = False
-    print(data)
-    if checkData(data, ['id_event'], {'id_event' : str})[0]:
+    allowed_roles = {'admin', 'secretary'}
+    result, statusCode = verifyRole(request, allowed_roles)
+    if statusCode != 200:
+        response = result
+    elif checkData(data, ['id_event'], {'id_event' : str})[0]:
         if check_keys(data, ['cost', 'upfront']):
             if data['cost'] < data['upfront']:
                 statusCode = 400
