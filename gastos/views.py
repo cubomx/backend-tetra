@@ -21,8 +21,8 @@ def addGasto(request):
     data = json.loads(request.body.decode('utf-8'))
     statusCode = 200
     expected_keys = ['day', 'month', 'year', 'concept', 'amount', 'buyer', 'quantity', 'category']
-    types = {'id_event':str, 'date':str, 'concept':str, 'amount':float, 'buyer':str, 
-             'quantity':float, 'category':str, 'day':int, 'month':int, 'year':int, 'expense_type':str}
+    types = {'date':str, 'concept':str, 'amount':[float,int], 'buyer':str, 
+             'quantity':[float, int], 'category':str, 'day':int, 'month':int, 'year':int, 'expense_type':str}
     res = {}
     result = None
 
@@ -67,8 +67,8 @@ def addGasto(request):
         else:
             res['message'] = message
     
-
-    json_data = json_util.dumps([res])
+    
+    json_data = json_util.dumps(res)
     response = HttpResponse(json_data, content_type='application/json', status=statusCode)
     return response
 
