@@ -31,46 +31,47 @@ def addGasto(request):
     result, statusCode = verifyRole(request, allowed_roles)
     if statusCode != 200:
         res = result
-    elif not checkData(data, ['id_event'], {'id_event' : str})[0]:
-        res['message'] = 'ID de evento no encontrado'
     else:
-        id_event = data['id_event']
-        del data['id_event']
-        isDataCorrect, message  = checkData(data, expected_keys, types)
-        if isDataCorrect:
-            unit_price = data['amount'] / data['quantity']
-            data['unit_price'] = unit_price
-            date = str(data['day']) + str(data['month']) + str(data['year'])
-            data['id_expense'] = generateIDTicket(4, date)
-            res['message'] = message
-            if id_event == 'GENERAL':
-                data['available'] = data['quantity']
-                result = gastosTable.insert_one(data)
-            else:
-                if search({'id_event' : id_event}, agendaTable):
-                    
-                    data['available'] = 0
-                    data['allocation'] = [{'id_event' : id_event}]
-                    res['message'] = 'FOUND'
-                    result = gastosTable.insert_one(data)
-                    # Also, we need to add the reference of the allocation
-                    update_query = {"$push": {"expenses": {'id_expense':data['id_expense'],'portion' : data['quantity']}}}
-                    queryResponse = updateData(agendaTable, {'id_event': id_event}, update_query)
-                    if queryResponse['result'] > 0:
-                        print('Se agregó con éxito el ticket {} al evento {}'.format(data['id_expense'], id_event))
-                    else:
-                        print('Hubo un error al añadir el ticket {} al evento {}'.format(data['id_expense'], id_event))
-                else:
-                    res['message'] = 'Evento no encontrado: {}'.format(id_event)
-                    statusCode = 404
-            if result != None and result.inserted_id:
-               status = "con éxito. Ticket ID {}".format(data['id_expense'])
-            else:
-               status = "fallido." 
-               statusCode = 404
-            res['message'] = 'Gasto añadido {}'.format(status)
+        if not checkData(data, ['id_event'], {'id_event' : str})[0]:
+            res['message'] = 'ID de evento no encontrado'
         else:
-            res['message'] = message
+            id_event = data['id_event']
+            del data['id_event']
+            isDataCorrect, message  = checkData(data, expected_keys, types)
+            if isDataCorrect:
+                unit_price = data['amount'] / data['quantity']
+                data['unit_price'] = unit_price
+                date = str(data['day']) + str(data['month']) + str(data['year'])
+                data['id_expense'] = generateIDTicket(4, date)
+                res['message'] = message
+                if id_event == 'GENERAL':
+                    data['available'] = data['quantity']
+                    result = gastosTable.insert_one(data)
+                else:
+                    if search({'id_event' : id_event}, agendaTable):
+                        
+                        data['available'] = 0
+                        data['allocation'] = [{'id_event' : id_event}]
+                        res['message'] = 'FOUND'
+                        result = gastosTable.insert_one(data)
+                        # Also, we need to add the reference of the allocation
+                        update_query = {"$push": {"expenses": {'id_expense':data['id_expense'],'portion' : data['quantity']}}}
+                        queryResponse = updateData(agendaTable, {'id_event': id_event}, update_query)
+                        if queryResponse['result'] > 0:
+                            print('Se agregó con éxito el ticket {} al evento {}'.format(data['id_expense'], id_event))
+                        else:
+                            print('Hubo un error al añadir el ticket {} al evento {}'.format(data['id_expense'], id_event))
+                    else:
+                        res['message'] = 'Evento no encontrado: {}'.format(id_event)
+                        statusCode = 404
+                if result != None and result.inserted_id:
+                    status = "con éxito. Ticket ID {}".format(data['id_expense'])
+                else:
+                    status = "fallido." 
+                    statusCode = 404
+                    res['message'] = 'Gasto añadido {}'.format(status)
+            else:
+                res['message'] = message
     
     
     json_data = json_util.dumps(res)
