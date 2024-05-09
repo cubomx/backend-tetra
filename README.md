@@ -14,7 +14,7 @@
     - Run `docker-compose up -d`
 5. Run DJango app:
     - Go to **/** of the project  
-    - Run `pip3 install Django==4.2 pandas pymongo openpyxl`
+    - Run `pip3 install Django==4.2 pandas pymongo openpyxl PyJWT django-cors-headers bcrypt`
 
 **NOTE**: Please, run all this at the Ubuntu terminal with the [Windows Terminal](https://apps.microsoft.com/detail/9n0dx20hk701)
 
