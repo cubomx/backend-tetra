@@ -133,3 +133,14 @@ The app is going to be running on port 8000.
 - `delTipoEvento`
     - JSON:
         - **type**: *str*
+- `addLugar`
+    - JSON:
+        - **location**: *str*
+- `getTipoEvento`
+    - JSON:
+        - Empty
+    - **Response JSON**:
+        - **types**: *list*
+- `delTipoEvento`
+    - JSON:
+        - **location**: *str*
