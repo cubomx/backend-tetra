@@ -214,7 +214,8 @@ def getEvento(request):
     else:
         res = [{'message':'Faltan filtros o estan incorrectos. Filtros: name, type, year, day, month...'}]
         statusCode = 400
-    if res['events'] == [None]:
+
+    if 'events' in res and res['events'] == [None]:
         res = [{'message':' No informacion encontrada con los filtros usados'}]
         statusCode = 404
     elif checkData(data, ['excel'], {'excel' : str})[0]:

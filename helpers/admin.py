@@ -65,10 +65,12 @@ def TokenVerification(request):
             return (request, 200)
 
         except ExpiredSignatureError:
-            return ({'error': 'Expired token'}, 401)
+            return ({'error': 'Token expirado'}, 401)
 
         except Exception as e:
-            return ({'error': 'Invalid token'}, 401)
+            return ({'error': 'Token no valido'}, 401)
+    else:
+        return ({'error': 'No se envio la autorizacion necesaria'}, 401)
         
 def verifyRole(request, allowed_roles):
     result, statusCode = TokenVerification(request)
