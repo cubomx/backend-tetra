@@ -65,7 +65,7 @@ def getAbono(request):
         return HttpResponse([[{'message':'missing JSON'}]], content_type='application/json')
     
     data = json.loads(request.body.decode('utf-8'))
-    status = 200
+    statstatusCodeus = 200
     expected_keys = ['id_event', 'id_ticket']
     res = {}
 
@@ -73,36 +73,33 @@ def getAbono(request):
     result, statusCode = verifyRole(request, allowed_roles)
     if statusCode != 200:
         res = result
-    # check by ids
-    elif check_keys(data, expected_keys):
-        result, status = findAbono(data, abonosTable)
-        if status != 200: 
-            res = result
-        else:
-            res['payments'] = result
-    # check by date
-    
-    elif checkData(data, ['type'], {'type' : str })[0]:
-        data = deleteExtraQueries(data, ['type', 'day', 'month'])
-        id_events, status = searchWithProjection({'type' : data['type']}, {"_id": 0, "id_event": 1}, agendaTable, 'ERROR. Payment not found')
-        del data['type']
-        
-        results = []
-        for id_event in id_events:
-            query = data  | id_event
-            result = findAbono(query, abonosTable)[0]
-            if result:
-                for doc in result:
-                    results.append(dict(doc))
-        res = {'payments' : results}
- 
-    elif check_keys(data, ['day', 'month']):
-        res['payments'], status = findAbono(data, abonosTable)
     else:
-        res = {'message':'ERROR. Se espera el ID del evento o del ticket (o ambos) en la petición JSON. O, por "day", "month", "type"'}
-        status = 400
+        if check_keys(data, expected_keys):
+            result, statusCode = findAbono(data, abonosTable)
+            if statusCode != 200: 
+                res = result
+            else:
+                res['payments'] = result
+        elif checkData(data, ['type'], {'type' : str })[0]:
+            data = deleteExtraQueries(data, ['type', 'day', 'month'])
+            id_events, statusCode = searchWithProjection({'type' : data['type']}, {"_id": 0, "id_event": 1}, agendaTable, 'ERROR. Payment not found')
+            del data['type']
+            results = []
+            for id_event in id_events:
+                query = data  | id_event
+                result = findAbono(query, abonosTable)[0]
+                if result:
+                    for doc in result:
+                        results.append(dict(doc))
+            res = {'payments' : results}
+    
+        elif check_keys(data, ['day', 'month']):
+            res['payments'], statusCode = findAbono(data, abonosTable)
+        else:
+            res = {'message':'ERROR. Se espera el ID del evento o del ticket (o ambos) en la petición JSON. O, por "day", "month", "type"'}
+            statusCode = 400
     json_data = json_util.dumps(res)
-    return HttpResponse(json_data, content_type='application/json', status=status)
+    return HttpResponse(json_data, content_type='application/json', status=statusCode)
 
 def delAbono(request):
     if not request.content_type == 'application/json':\

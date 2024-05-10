@@ -95,40 +95,41 @@ def getGasto(request):
     result, statusCode = verifyRole(request, allowed_roles)
     if statusCode != 200:
         res = result
-    elif checkData(data, ['expenses'], {'expenses' : dict})[0]:
-        if checkData(data['expenses'], ['id_event'], {'id_event':str})[0]:
-            id_event = data['expenses']['id_event']
-            query = {'id_event': id_event}
-            errorMessage = 'ERROR: Evento no encontrado {}'.format(id_event)
-            result, statusCode = checkSearch(query, {'expenses': 1, "_id": 0}, agendaTable, errorMessage, 'expenses', 'message')
-            if statusCode == 200:
-                for i in result:
-                    for expense in i['expenses']:
-                        id_expense = expense['id_expense']
-                        print(id_expense)
-                        query = {'id_expense':id_expense}
-                        fields_excluded = ['_id','quantity', 'allocation', 'available', 'id_expense', 'amount']
-                        field_query = {field:0 for field in fields_excluded}
-                        expense_data, newCode = checkSearch(query, field_query, gastosTable, 'Gasto no encontrado {}'.format(id_expense), 'expenses', 'message') 
-                        if newCode == 200:
-                            for data in expense_data:
-                                expense.update(data)
-                        # get the cost proportionated cost 
-                        expense['amount'] = expense['portion'] * expense['unit_price']
-                        res['expenses'].append(expense)
+    else: 
+        if checkData(data, ['expenses'], {'expenses' : dict})[0]:
+            if checkData(data['expenses'], ['id_event'], {'id_event':str})[0]:
+                id_event = data['expenses']['id_event']
+                query = {'id_event': id_event}
+                errorMessage = 'ERROR: Evento no encontrado {}'.format(id_event)
+                result, statusCode = checkSearch(query, {'expenses': 1, "_id": 0}, agendaTable, errorMessage, 'expenses', 'message')
+                if statusCode == 200:
+                    for i in result:
+                        for expense in i['expenses']:
+                            id_expense = expense['id_expense']
+                            print(id_expense)
+                            query = {'id_expense':id_expense}
+                            fields_excluded = ['_id','quantity', 'allocation', 'available', 'id_expense', 'amount']
+                            field_query = {field:0 for field in fields_excluded}
+                            expense_data, newCode = checkSearch(query, field_query, gastosTable, 'Gasto no encontrado {}'.format(id_expense), 'expenses', 'message') 
+                            if newCode == 200:
+                                for data in expense_data:
+                                    expense.update(data)
+                            # get the cost proportionated cost 
+                            expense['amount'] = expense['portion'] * expense['unit_price']
+                            res['expenses'].append(expense)
+                else:
+                    res['message'] = result
             else:
-                res['message'] = result
-        else:
-            res['message'] = 'ID de evento no proporcionado'
-            statusCode = 400
-        
-    elif checkData(data, ['filters'], {'filters' : dict})[0]:
+                res['message'] = 'ID de evento no proporcionado'
+                statusCode = 400
+            
+        elif checkData(data, ['filters'], {'filters' : dict})[0]:
 
-        if check_keys(data['filters'], ['day', 'month', 'year', 'category', 'expense_type']):
-            res, statusCode = checkSearch(data['filters'], projection, gastosTable, 'ERROR: Gastos no encontrados', 'expenses', 'message')
-    else:
-        res['message'] = 'Falta la informacion "expenses"/"filters"'
-        statusCode = 400
+            if check_keys(data['filters'], ['day', 'month', 'year', 'category', 'expense_type']):
+                res, statusCode = checkSearch(data['filters'], projection, gastosTable, 'ERROR: Gastos no encontrados', 'expenses', 'message')
+        else:
+            res['message'] = 'Falta la informacion "expenses"/"filters"'
+            statusCode = 400
             
     json_data = json_util.dumps(res)
     return HttpResponse(json_data, content_type='application/json', status=statusCode)
