@@ -25,7 +25,6 @@ def addGasto(request):
     types = {'date':str, 'concept':str, 'amount':[float,int], 'buyer':str, 
              'quantity':[float, int], 'category':str, 'day':int, 'month':int, 'year':int, 'expense_type':str}
     res = {}
-    result = None
 
     allowed_roles = {'admin', 'finance'}
     result, statusCode = verifyRole(request, allowed_roles)
@@ -49,27 +48,19 @@ def addGasto(request):
                     result = gastosTable.insert_one(data)
                 else:
                     if search({'id_event' : id_event}, agendaTable):
-                        
                         data['available'] = 0
                         data['allocation'] = [{'id_event' : id_event}]
-                        res['message'] = 'FOUND'
                         result = gastosTable.insert_one(data)
                         # Also, we need to add the reference of the allocation
                         update_query = {"$push": {"expenses": {'id_expense':data['id_expense'],'portion' : data['quantity']}}}
                         queryResponse = updateData(agendaTable, {'id_event': id_event}, update_query)
                         if queryResponse['result'] > 0:
-                            print('Se agregó con éxito el ticket {} al evento {}'.format(data['id_expense'], id_event))
+                            res['message'] = 'Se agregó con éxito el ticket {} al evento {}'.format(data['id_expense'], id_event)
                         else:
-                            print('Hubo un error al añadir el ticket {} al evento {}'.format(data['id_expense'], id_event))
+                            res['message'] = 'Hubo un error al añadir el ticket {} al evento {}'.format(data['id_expense'], id_event)
                     else:
                         res['message'] = 'Evento no encontrado: {}'.format(id_event)
                         statusCode = 404
-                if result != None and result.inserted_id:
-                    status = "con éxito. Ticket ID {}".format(data['id_expense'])
-                else:
-                    status = "fallido." 
-                    statusCode = 404
-                    res['message'] = 'Gasto añadido {}'.format(status)
             else:
                 res['message'] = message
     

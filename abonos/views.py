@@ -24,9 +24,6 @@ def addAbono(request):
 
     allowed_roles = {'admin', 'finance'}
     result, statusCode = verifyRole(request, allowed_roles)
-
-    res=result
-
     if statusCode != 200:
         res = result
     elif isDataCorrect:
