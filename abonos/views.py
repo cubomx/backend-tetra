@@ -49,7 +49,7 @@ def addAbono(request):
             res['message'] = 'No se encontro el evento por el ID: {}'.format(data['id_event'])
             statusCode = 400
     else:
-        res['message'] = result 
+        res['message'] = message 
         statusCode = 400
 
 
@@ -62,7 +62,7 @@ def getAbono(request):
         return HttpResponse([[{'message':'missing JSON'}]], content_type='application/json')
     
     data = json.loads(request.body.decode('utf-8'))
-    statstatusCodeus = 200
+    statusCode = 200
     expected_keys = ['id_event', 'id_ticket']
     res = {}
 
@@ -74,7 +74,8 @@ def getAbono(request):
         if check_keys(data, expected_keys):
             result, statusCode = findAbono(data, abonosTable)
             if statusCode != 200: 
-                res = result
+                res['payments'] = []
+                statusCode = 200
             else:
                 res['payments'] = result
         elif checkData(data, ['type'], {'type' : str })[0]:

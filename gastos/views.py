@@ -55,9 +55,9 @@ def addGasto(request):
                         update_query = {"$push": {"expenses": {'id_expense':data['id_expense'],'portion' : data['quantity']}}}
                         queryResponse = updateData(agendaTable, {'id_event': id_event}, update_query)
                         if queryResponse['result'] > 0:
-                            res['message'] = 'Se agregó con éxito el ticket {} al evento {}'.format(data['id_expense'], id_event)
+                            res['message'] = 'Se agrego con exito el ticket {} al evento {}'.format(data['id_expense'], id_event)
                         else:
-                            res['message'] = 'Hubo un error al añadir el ticket {} al evento {}'.format(data['id_expense'], id_event)
+                            res['message'] = 'Hubo un error al agregar el ticket {} al evento {}'.format(data['id_expense'], id_event)
                     else:
                         res['message'] = 'Evento no encontrado: {}'.format(id_event)
                         statusCode = 404
