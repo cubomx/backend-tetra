@@ -12,7 +12,8 @@ from helpers.admin import verifyRole
 client =  pymongo.MongoClient('localhost', 27017, username='root', password='example')
 db = client['tetra']
 agendaTable = db['agenda']
-
+gastosTable = db['gastos']
+abonosTable = db['abonos']
 projection = {"_id": False}
 
 def index(request):
@@ -23,44 +24,6 @@ def index(request):
    
     response = HttpResponse(json_data, content_type='application/json')
     return response
-
-def calculatePagination(request):
-    statusCode = 200
-    res = {}
-    if request.method == 'GET':
-        # Get parameters from the request
-        quantity = request.GET.get('quantity')
-        day = request.GET.get('day')
-        month = request.GET.get('month')
-        year = request.GET.get('year')
-        isFuture = request.GET.get('isFuture')
-
-        if quantity == None or day == None or month == None or year == None or isFuture == None:
-            res['message'] = 'Faltan datos por enviar: collection, quantity, day, month, year, isFuture'
-            
-        else:
-            query = None
-            if isFuture=='yes':
-                print('si')
-                query = {
-                '$and': [{'year': {'$gte': year}},
-                        {'$or': [{'month': {'$gt': month}},
-                            {'month': {'$eq': month}, 'day': {'$gte': day}}]}
-                    ]}
-            else:
-                query = {
-                    '$and': [{'year': {'$lte': year}},
-                        {'$or': [{'month': {'$lt': month}},
-                            {'month': {'$eq': month}, 'day': {'$lt': day}}]}
-                    ]}
-            print(query)
-            res['pages'] = math.ceil(agendaTable.count_documents(query) / int(quantity))
-
-    else:
-        res['message'] = 'Metodo no permitido {}'.format(request.method)
-        statusCode = 405
-    json_data = json_util.dumps(res)
-    return HttpResponse(json_data, content_type='application/json', status=statusCode)
 
 def agenda(request):
     if not request.content_type == 'application/json':\
@@ -176,18 +139,28 @@ def delEvento(request):
     allowed_roles = {'admin'}
     result, statusCode = verifyRole(request, allowed_roles)
     if statusCode != 200:
-        res = result
+        message = result['message']
     elif isDataCorrect:
+        id_event = data['id_event']
+        result = agendaTable.find_one({'id_event':data['id_event']}, {"expenses": 1, "_id": 0})
+
+        expenses = result['expenses']
         res = agendaTable.delete_one(data)
         # Check if the deletion was successful
         if res.deleted_count == 1:
+            for expense in expenses:
+                queryUpdateGastos = {'$inc': {'available': expense['portion']}, 
+                                     '$pull' : {'allocation':{'id_event':id_event}}}
+                updateData(gastosTable, {'id_expense':expense['id_expense']}, queryUpdateGastos)                
+               
+            abonosTable.delete_many({'id_event':id_event})
             message = 'Evento eliminado exitosamente.'
             statusCode = 200
         else:
             message = 'Evento no encontrado o ID de evento equivocado'
             statusCode = 404
 
-    json_data = json_util.dumps([{"message": message}])
+    json_data = json_util.dumps({"message": message})
     
     return HttpResponse(json_data, content_type='application/json', status=statusCode)
 
