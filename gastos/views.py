@@ -170,7 +170,7 @@ def modifyGasto(request):
     result, statusCode = verifyRole(request, allowed_roles)
     if statusCode != 200:
         res = result
-    elif checkData(data, ['id_event', 'id_expense', 'portion'], {'id_event' : str, 'id_expense' : str, 'portion':float})[0]:
+    elif checkData(data, ['id_event', 'id_expense', 'portion'], {'id_event' : str, 'id_expense' : str, 'portion':[int,float]})[0]:
         #res['message'] = 'Correcta la data'
         id_event = data['id_event']
         id_expense = data['id_expense']
@@ -182,8 +182,7 @@ def modifyGasto(request):
             print(event)
             portion = searchExpense(event[0]['expenses'], id_expense)
             if portion == -1:
-               
-                if portionDesire <= 0:
+                if portionDesire <= 0.0:
                     statusCode = 400
                     res['message'] = 'Has pedido 0 del gasto {}, no es posible asignar nulo'
                 else:
@@ -233,8 +232,5 @@ def modifyGasto(request):
     else:
         res['message'] = 'Parece que falta un dato por enviar: id_event, id_expense, portion'
         statusCode = 400
-
-    
-
     json_data = json_util.dumps(res)
     return HttpResponse(json_data, content_type='application/json', status=statusCode)
