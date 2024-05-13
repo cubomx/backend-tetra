@@ -55,7 +55,10 @@ def changePass(request):
             data['password'] = hashPassword(data['password']).decode('utf-8')
         if user and len(user) > 0:
             update = {'$set': data}
-            if data['role']:
+            if 'isMaster' in user:
+                statusCode = 401
+                res['message'] = 'No se puede modificar la cuenta maestra'
+            elif data['role']:
                 if data['role'] in roles:
                     res = updateData(usuariosTable, {'email':data['email']}, update)
                 else:
