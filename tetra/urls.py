@@ -32,5 +32,6 @@ urlpatterns = [
     path('delTipoEvento', views.delEventType, name='del type of event'),
     path('addLugar', views.addLocation, name='add location of event'),
     path('getLugares', views.getLocations, name='get locations of events'),
-    path('delLugar', views.delLocation, name='del location of event')
+    path('delLugar', views.delLocation, name='del location of event'),
+    path('editarUsuario', views.changePass, name='edit user')
 ]

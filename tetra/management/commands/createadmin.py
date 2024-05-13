@@ -20,7 +20,7 @@ class Command(BaseCommand):
             hashedPass = hashPassword(password).decode('utf-8')
             
             role = 'admin'
-            res = usuariosTable.insert_one({'email': email, 'password':hashedPass, 'role': role})
+            res = usuariosTable.insert_one({'email': email, 'name':'Admin', 'password':hashedPass, 'role': role})
             if res.inserted_id:
                 self.stdout.write(self.style.SUCCESS('El administrador ha sido creado con exito'))
             else:
