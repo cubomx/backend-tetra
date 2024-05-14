@@ -115,9 +115,15 @@ def getGasto(request):
                 statusCode = 400
             
         elif checkData(data, ['filters'], {'filters' : dict})[0]:
-
+            result = None
             if check_keys(data['filters'], ['day', 'month', 'year', 'category', 'expense_type']):
-                res, statusCode = checkSearch(data['filters'], projection, gastosTable, 'ERROR: Gastos no encontrados', 'expenses', 'message')
+                result, statusCode = checkSearch(data['filters'], projection, gastosTable, 'ERROR: Gastos no encontrados', 'expenses', 'message')
+            if statusCode == 200:
+                res['expenses'] = result
+            elif statusCode != 200:
+                res = result[0]
+            
+
         else:
             res['message'] = 'Falta la informacion "expenses"/"filters"'
             statusCode = 400
