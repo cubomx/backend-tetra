@@ -46,6 +46,10 @@ def addGasto(request):
                 if id_event == 'GENERAL':
                     data['available'] = data['quantity']
                     result = gastosTable.insert_one(data)
+                    if result.inserted_id:
+                        res['message'] = 'Se agrego con exito el ticket {} al {}'.format(data['id_expense'], data['expense_type'])
+                    else:
+                        res['message'] = 'Hubo un error al agregar el ticket {} al {}'.format(data['id_expense'], data['expense_type'])
                 else:
                     if search({'id_event' : id_event}, agendaTable):
                         data['available'] = 0
