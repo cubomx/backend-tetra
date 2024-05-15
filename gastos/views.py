@@ -162,8 +162,10 @@ def getGasto(request):
             elif statusCode != 200:
                 res = result[0]
         elif checkData(data, ['id_event'], {'id_event':str})[0]:
-            print(getCount(data, ['Alimentos', 'Bebidas', 'Salarios', 'Otros']))
-            res['message'] = 'Muito obrigado'
+            if agendaTable.find_one(data):
+                res['expenses'] = getCount(data, ['Alimentos', 'Bebidas', 'Salarios', 'Otros'])
+            else:
+                res = {'message':'No se encontro nada'}
         else:
             res['message'] = 'Falta la informacion "expenses"/"filters"'
             statusCode = 400
