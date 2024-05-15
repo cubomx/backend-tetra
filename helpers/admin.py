@@ -80,4 +80,4 @@ def verifyRole(request, allowed_roles):
         if result.decoded_token['role'] in allowed_roles:
             return ('Good', 200)
         else:
-            return ({'message': 'El usuario con el rol {} no tiene permisos para realizar esta accion'.format()}, 401)
+            return ({'message': 'El usuario con el rol {} no tiene permisos para realizar esta accion'.format(result.decoded_token['role'])}, 401)

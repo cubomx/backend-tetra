@@ -76,6 +76,41 @@ def addGasto(request):
 def checkSearch(query, projection, table, errorMessage, successKey, failureKey):
     result, statusCode = searchWithProjection(query, projection, table, errorMessage)
     return (result, statusCode)
+
+def getCount(query, categories):
+    expenses = agendaTable.find_one(query, {"_id": 0, "expenses": 1, "cost":1, "upfront":1})
+    payments = list(abonosTable.find(query, {"_id":0, "quantity": 1}))
+    print(list(payments))
+
+    # Initialize a dictionary to store category totals
+    totals = {}
+    for category in categories:
+        totals[category] = 0
+
+    totals['precio'] = expenses['cost']
+    totals['abonos'] = expenses['upfront']
+
+    for payment in payments:
+        totals['abonos'] = totals.get('abonos') + payment['quantity']
+    
+    for expense in expenses['expenses']:
+        id_expense = expense["id_expense"]
+            
+        # Find the corresponding expense in the second collection
+        expense_details = gastosTable.find_one({"id_expense": id_expense})
+        
+        # If the expense is found
+        if expense_details:
+            category = expense_details["category"]
+            unit_price = expense_details["unit_price"]
+            portion = expense["portion"]
+            
+            # Calculate the amount
+            amount = unit_price * portion
+            
+            # Update category total
+            totals[category] = totals.get(category, 0) + amount
+    return totals
     
 
 def getGasto(request):
@@ -126,8 +161,9 @@ def getGasto(request):
                 res['expenses'] = result
             elif statusCode != 200:
                 res = result[0]
-            
-
+        elif checkData(data, ['id_event'], {'id_event':str})[0]:
+            print(getCount(data, ['Alimentos', 'Bebidas', 'Salarios', 'Otros']))
+            res['message'] = 'Muito obrigado'
         else:
             res['message'] = 'Falta la informacion "expenses"/"filters"'
             statusCode = 400
