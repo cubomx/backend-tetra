@@ -154,7 +154,7 @@ def checkExpenseAvailability(expense, portionDesire, portionOld, id_event, id_ex
     expense = expense[0]
     print(available + portionOld)
     if available + portionOld < portionDesire:
-        res['message'] = 'La cantidad deseada {} es mayor a la disponible {} del gasto seleccionado'.format(portionDesire, available)
+        res['message'] = 'La cantidad deseada {} es mayor a la disponible (o la disponible mas la que ya tienes asignada) {} del gasto seleccionado'.format(portionDesire, available + portionOld)
         statusCode = 404
     else:
         resultUpdateGastos = updateData(gastosTable, queryGastos, queryUpdateGastos)
