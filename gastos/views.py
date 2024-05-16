@@ -165,7 +165,8 @@ def getGasto(request):
             if agendaTable.find_one(data):
                 res['expenses'] = getCount(data, ['Alimentos', 'Bebidas', 'Salarios', 'Otros'])
             else:
-                res = {'message':'No se encontro nada'}
+                res = {'message':'No se encontro el evento {}'.format(data['id_event'])}
+                statusCode = 404
         else:
             res['message'] = 'Falta la informacion "expenses"/"filters"'
             statusCode = 400
