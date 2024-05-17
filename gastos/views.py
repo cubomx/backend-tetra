@@ -77,7 +77,7 @@ def checkSearch(query, projection, table, errorMessage, successKey, failureKey):
     result, statusCode = searchWithProjection(query, projection, table, errorMessage)
     return (result, statusCode)
 
-def getCount(query, categories):
+def getCount(query, categories, categoriesInEN):
     expenses = agendaTable.find_one(query, {"_id": 0, "expenses": 1, "cost":1, "upfront":1})
     payments = list(abonosTable.find(query, {'_id':0,'quantity':1}).sort([("year", 1), ("month", 1), ("day", 1)]))
 
@@ -86,13 +86,13 @@ def getCount(query, categories):
     for category in categories:
         totals[category] = 0
 
-    totals['abonos'] = []
+    totals['payments'] = []
 
-    totals['precio'] = expenses['cost']
-    totals['abonos'].append(expenses['upfront'])
+    totals['price'] = expenses['cost']
+    totals['payments'].append(expenses['upfront'])
 
     for payment in payments:
-        totals['abonos'].append(payment['quantity'])
+        totals['payments'].append(payment['quantity'])
     
     for expense in expenses['expenses']:
         id_expense = expense["id_expense"]
@@ -110,7 +110,7 @@ def getCount(query, categories):
             amount = unit_price * portion
             
             # Update category total
-            totals[category] = totals.get(category, 0) + amount
+            totals[categoriesInEN[category]] = totals.get(categoriesInEN[category], 0) + amount
     return totals
     
 
@@ -164,7 +164,7 @@ def getGasto(request):
                 res = result[0]
         elif checkData(data, ['id_event'], {'id_event':str})[0]:
             if agendaTable.find_one(data):
-                res['expenses'] = getCount(data, ['Alimentos', 'Bebidas', 'Salarios', 'Otros'])
+                res['expenses'] = getCount(data, ['Alimentos', 'Bebidas', 'Salarios', 'Otros'], {'Alimentos':'food', 'Bebidas':'beverages','Salarios':'salaries','Otros':'others'})
             else:
                 res = {'message':'No se encontro el evento {}'.format(data['id_event'])}
                 statusCode = 404
