@@ -79,19 +79,20 @@ def checkSearch(query, projection, table, errorMessage, successKey, failureKey):
 
 def getCount(query, categories):
     expenses = agendaTable.find_one(query, {"_id": 0, "expenses": 1, "cost":1, "upfront":1})
-    payments = list(abonosTable.find(query, {"_id":0, "quantity": 1}))
-    print(list(payments))
+    payments = list(abonosTable.find(query, {'_id':0,'quantity':1}).sort([("year", 1), ("month", 1), ("day", 1)]))
 
     # Initialize a dictionary to store category totals
     totals = {}
     for category in categories:
         totals[category] = 0
 
+    totals['abonos'] = []
+
     totals['precio'] = expenses['cost']
-    totals['abonos'] = expenses['upfront']
+    totals['abonos'].append(expenses['upfront'])
 
     for payment in payments:
-        totals['abonos'] = totals.get('abonos') + payment['quantity']
+        totals['abonos'].append(payment['quantity'])
     
     for expense in expenses['expenses']:
         id_expense = expense["id_expense"]

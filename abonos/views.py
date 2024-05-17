@@ -6,6 +6,8 @@ import sys
 sys.path.append('../')
 from helpers.helpers import checkData, search, generateTicketNumber, getDate, check_keys, searchWithProjection, findAbono, deleteExtraQueries
 from helpers.admin import verifyRole
+import datetime
+import pytz
 
 client =  pymongo.MongoClient('localhost', 27017, username='root', password='example')
 db = client['tetra']
@@ -31,11 +33,21 @@ def addAbono(request):
         query = {"id_event": id_event}
         eventFound = search(query, agendaTable)
         if eventFound:
+           
            print('Found event with id_event {}'.format(id_event))
            id_ticket = generateTicketNumber(4, getDate())
            print('Ticket ID Number: {}'.format(id_ticket))
+           # Define the time zone you want to work with
+           tz = pytz.timezone('America/Mexico_City')  # Example: Eastern Time Zone
+
+            # Get the current date and time in the specified time zone
+           current_time = datetime.datetime.now(tz)
+
+            # Format the date and time
+           formatted_time = current_time.strftime('%d-%m-%Y')
+
            data['id_ticket'] = id_ticket
-           data['day'], data['month'], data['year']  = [int(x) for x in getDate().split('-')]
+           data['day'], data['month'], data['year']  = [int(x) for x in formatted_time.split('-')]
     
            result = abonosTable.insert_one(data)
            
