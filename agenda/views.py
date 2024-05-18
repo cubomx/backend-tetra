@@ -110,6 +110,7 @@ def addEvento(request):
             else:
                 data['id_event'] = id_event
                 data['expenses'] = []
+                data['state'] = 'pendiente'
                 result = agendaTable.insert_one(data)  
                 
                 if result.inserted_id:
@@ -144,15 +145,16 @@ def delEvento(request):
         id_event = data['id_event']
         result = agendaTable.find_one({'id_event':data['id_event']}, {"expenses": 1, "_id": 0})
 
-        expenses = result['expenses']
-        res = agendaTable.delete_one(data)
-        # Check if the deletion was successful
-        if res.deleted_count == 1:
+        if result:
+            expenses = result['expenses']
+            #res = agendaTable.delete_one(data)
+            updateData(agendaTable, {'id_event':id_event}, {'$set': {'expenses': [], 'state': 'cancelado'}})
+            # Check if the deletion was successful
             for expense in expenses:
                 queryUpdateGastos = {'$inc': {'available': expense['portion']}, 
-                                     '$pull' : {'allocation':{'id_event':id_event}}}
+                                        '$pull' : {'allocation':{'id_event':id_event}}}
                 updateData(gastosTable, {'id_expense':expense['id_expense']}, queryUpdateGastos)                
-               
+                
             abonosTable.delete_many({'id_event':id_event})
             message = 'Evento eliminado exitosamente.'
             statusCode = 200
@@ -173,13 +175,16 @@ def getEvento(request):
     data = json.loads(request.body.decode('utf-8'))
     statusCode = 200
 
-    expected_keys = ['name', 'type', 'year', 'day', 'month', 'location', 'num_of_people', 'cost', 'upfront', 'excel']
+    expected_keys = ['name', 'type', 'year', 'day', 'month', 'location', 'num_of_people', 'cost', 'upfront', 'excel', 'state']
     res = {}
     allowed_roles = {'admin', 'secretary', 'finance', 'inventary'}
     result, statusCode = verifyRole(request, allowed_roles)
 
     if statusCode != 200:
         res = result
+    elif data['state'] and isinstance(data['state'], list):
+         data['state'] = {'$in':data['state']}
+         res['events'] = list(agendaTable.find(data, projection))
     elif check_keys(data, expected_keys):
         res['events'] = list(agendaTable.find(data, projection))
     elif checkData(data, ['id_event'], {'id_event' : str})[0]:
@@ -195,7 +200,7 @@ def getEvento(request):
         print(res)
         headers = {
             'name':'nombre', 'type':'categoria', 'year':'año', 'day':'día', 'month':'mes', 
-            'location':'ubicacion', 'num_of_people':'invitados', 'cost':'costo', 'upfront':'adelanto'
+            'location':'ubicacion', 'num_of_people':'invitados', 'cost':'costo', 'upfront':'adelanto', 'state':'estado'
         }
         df = pd.DataFrame(res['events'])
         return returnExcel(df, headers, 'eventos', 'detalles')
@@ -205,7 +210,7 @@ def getEvento(request):
 
 def modifyEvento(request):
     data = json.loads(request.body.decode('utf-8'))
-    expected_keys = ['name',  'type', 'day', 'month', 'year', 'location', 'num_of_people', 'cost', 'upfront', 'id_event']
+    expected_keys = ['name',  'type', 'day', 'month', 'year', 'location', 'num_of_people', 'cost', 'upfront', 'id_event', 'state']
     statusCode = 200
 
     response = {}

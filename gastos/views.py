@@ -84,7 +84,7 @@ def getCount(query, categories, categoriesInEN):
     # Initialize a dictionary to store category totals
     totals = {}
     for category in categories:
-        totals[category] = 0
+        totals[categoriesInEN[category]] = 0
 
     totals['payments'] = []
 
@@ -282,5 +282,25 @@ def modifyGasto(request):
     else:
         res['message'] = 'Parece que falta un dato por enviar: id_event, id_expense, portion'
         statusCode = 400
+    json_data = json_util.dumps(res)
+    return HttpResponse(json_data, content_type='application/json', status=statusCode)
+
+def guardarEstadoResultados(request):
+    if not request.content_type == 'application/json':
+        return HttpResponse([[{'message':'missing JSON'}]], content_type='application/json', status=400)
+    data = json.loads(request.body.decode('utf-8'))
+    res = {}
+    statusCode = 200
+    allowed_roles = {'admin', 'finance'}
+    result, statusCode = verifyRole(request, allowed_roles)
+    if statusCode != 200:
+        res = result
+    elif checkData(data, ['id_event', 'payments', 'food', 'beverages', 'furniture', 'others', 'margin', 'cost', 'price','salonPrice','utility'],
+        {'id_event':str, 'payments':list, 'food':[int,float], 'beverages':[int,float], 'furniture':[int,float], 'others':[int,float], 'margin':[int,float], 
+         'cost':[int,float], 'price':[int,float],'salonPrice':[int,float],'utility':[int,float]})[0]:
+        res['message'] = 'La info esta bien'
+    else:
+        res['message'] = 'Falto informacion por enviar'
+
     json_data = json_util.dumps(res)
     return HttpResponse(json_data, content_type='application/json', status=statusCode)
