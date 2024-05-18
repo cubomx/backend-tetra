@@ -298,9 +298,44 @@ def guardarEstadoResultados(request):
     elif checkData(data, ['id_event', 'payments', 'food', 'beverages', 'furniture', 'others', 'margin', 'cost', 'price','salonPrice','utility'],
         {'id_event':str, 'payments':list, 'food':[int,float], 'beverages':[int,float], 'furniture':[int,float], 'others':[int,float], 'margin':[int,float], 
          'cost':[int,float], 'price':[int,float],'salonPrice':[int,float],'utility':[int,float]})[0]:
-        res['message'] = 'La info esta bien'
+            if agendaTable.find_one({'id_event': data['id_event']}):
+                id_event = data['id_event'] 
+                del data['id_event'] 
+                del data['payments']
+                del data['price']
+                updateData(agendaTable, {'id_event': id_event}, {'$set' : {'state':'completado', 'margin': data}})
+                res['message'] = 'Se concluyo con exito'
+            else:
+                statusCode = 400
+                res['message'] = 'No se encontro el evento {}'.format(data['id_event'])
     else:
         res['message'] = 'Falto informacion por enviar'
 
+    json_data = json_util.dumps(res)
+    return HttpResponse(json_data, content_type='application/json', status=statusCode)
+
+def revertirMargenResultados(request):
+    if not request.content_type == 'application/json':
+        return HttpResponse([[{'message':'missing JSON'}]], content_type='application/json', status=400)
+    data = json.loads(request.body.decode('utf-8'))
+    res = {}
+    statusCode = 200
+    allowed_roles = {'admin', 'finance'}
+    result, statusCode = verifyRole(request, allowed_roles)
+    if statusCode != 200:
+        res = result
+    elif checkData(data, ['id_event'], {'id_event':str})[0]:
+        print('hehe')
+        if agendaTable.find_one({'id_event':data['id_event'], 'state':'completado'}):
+            updateData(agendaTable, {'id_event':data['id_event'], 'state':'completado'}, 
+                       {'$set' : {'state':'pendiente'}, '$unset': {'margin': ''}})
+            res['message'] = 'Se revirtio con exito el evento'
+        else:
+            res['message'] = 'Evento no encontrado'
+            statusCode = 404
+    else:
+        res['message'] = 'No se envio el id del evento'
+        statusCode = 400
+    print(data)
     json_data = json_util.dumps(res)
     return HttpResponse(json_data, content_type='application/json', status=statusCode)

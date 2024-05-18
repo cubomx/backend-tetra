@@ -102,7 +102,9 @@ def addEvento(request):
             message = 'El pago del evento {} es menor al pago inicial {}'.format(data['cost'], data['upfront'])
         else:  
 
-            query = {'location': data['location'], 'day': data['day'], 'month' : data['month'], 'year' : data['year']}
+            query = {'location': data['location'], 
+                     'day': data['day'], 'month' : data['month'], 'year' : data['year'],
+                     'state': {'$in':['completado', 'pendiente']}}
             eventFound = search(query, agendaTable)
             if eventFound:
                 message = 'Espacio no disponible'
@@ -227,7 +229,7 @@ def modifyEvento(request):
             if checkData(data, ['location', 'day', 'month', 'year'], {'location' : str, 'day' : int, 'month' : int, 'year' : int})[0]:
                 query = {'location': data['location'], 
                          'day': data['day'], 'month' : data['month'], 'year' : data['year'], 
-                         'id_event' : { '$ne' : data['id_event']}}
+                         'id_event' : { '$ne' : data['id_event']}, 'state': {'$in':['completado', 'pendiente']}}
                 if search(query, agendaTable):
                     response = {'message':'Espacio bloqueado. No se puede cambiar el evento a la fecha y lugar deseado.'}
                     statusCode = 404
