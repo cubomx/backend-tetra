@@ -1,10 +1,11 @@
 from django.http import HttpResponse
+import pandas as pd
 import pymongo
 import json
 from bson import json_util
 import sys
 sys.path.append('../')
-from helpers.helpers import checkData, generateIDTicket, search, check_keys, searchWithProjection, updateData
+from helpers.helpers import checkData, generateIDTicket, returnExcel, search, check_keys, searchWithProjection, updateData
 from helpers.admin import verifyRole
 
 client =  pymongo.MongoClient('localhost', 27017, username='root', password='example')
@@ -76,6 +77,12 @@ def addGasto(request):
 def checkSearch(query, projection, table, errorMessage, successKey, failureKey):
     result, statusCode = searchWithProjection(query, projection, table, errorMessage)
     return (result, statusCode)
+
+def getPayments(query):
+    expenses = agendaTable.find_one(query, {"_id": 0, "expenses": 1, "cost":1, "upfront":1})
+    payments = list(abonosTable.find(query, {'_id':0,'quantity':1}).sort([("year", 1), ("month", 1), ("day", 1)]))
+    payments.append(expenses['upfront'])
+    return payments
 
 def getCount(query, categories, categoriesInEN):
     expenses = agendaTable.find_one(query, {"_id": 0, "expenses": 1, "cost":1, "upfront":1})
@@ -332,6 +339,90 @@ def revertirMargenResultados(request):
             res['message'] = 'Se revirtio con exito el evento'
         else:
             res['message'] = 'Evento no encontrado'
+            statusCode = 404
+    else:
+        res['message'] = 'No se envio el id del evento'
+        statusCode = 400
+    print(data)
+    json_data = json_util.dumps(res)
+    return HttpResponse(json_data, content_type='application/json', status=statusCode)
+
+def revertirMargenResultados(request):
+    if not request.content_type == 'application/json':
+        return HttpResponse([[{'message':'missing JSON'}]], content_type='application/json', status=400)
+    data = json.loads(request.body.decode('utf-8'))
+    res = {}
+    statusCode = 200
+    allowed_roles = {'admin', 'finance'}
+    result, statusCode = verifyRole(request, allowed_roles)
+    if statusCode != 200:
+        res = result
+    elif checkData(data, ['id_event'], {'id_event':str})[0]:
+        print('hehe')
+        if agendaTable.find_one({'id_event':data['id_event'], 'state':'completado'}):
+            updateData(agendaTable, {'id_event':data['id_event'], 'state':'completado'}, 
+                       {'$set' : {'state':'pendiente'}, '$unset': {'margin': ''}})
+            res['message'] = 'Se revirtio con exito el evento'
+        else:
+            res['message'] = 'Evento no encontrado'
+            statusCode = 404
+    else:
+        res['message'] = 'No se envio el id del evento'
+        statusCode = 400
+    print(data)
+    json_data = json_util.dumps(res)
+    return HttpResponse(json_data, content_type='application/json', status=statusCode)
+
+def fixData(result):
+    result['beverages'] = result['margin']['beverages']
+    result['food'] = result['margin']['food']
+    result['furniture'] = result['margin']['furniture']
+    result['salaries'] = result['margin']['salaries']
+    result['others'] = result['margin']['others']
+    result['utility'] = result['margin']['utility']
+    result['egresses'] = result['margin']['cost']
+    result['salonPrice'] = result['margin']['salonPrice']
+    result['margin'] = result['margin']['margin']
+    return result
+
+
+def getMargenResultados(request):
+    if not request.content_type == 'application/json':
+        return HttpResponse([[{'message':'missing JSON'}]], content_type='application/json', status=400)
+    data = json.loads(request.body.decode('utf-8'))
+    res = {}
+    statusCode = 200
+    allowed_roles = {'admin', 'finance'}
+    result, statusCode = verifyRole(request, allowed_roles)
+    if statusCode != 200:
+        res = result
+    elif checkData(data, ['id_event'], {'id_event':str})[0]:
+        print('hehe')
+        result = agendaTable.find_one({'id_event':data['id_event'], 'state':'completado'}, {'_id':0, 'expenses': 0})
+        if result:
+            payments = getPayments({'id_event':data['id_event'], 'state':'completado'})
+            dollarValue = ['cost', 'upfront', 'egresses', 'utility', 'food', 'beverages', 'salaries', 'others', 'salonPrice']
+            inThousands = ['num_of_people', 'margin']
+            headers = {
+                'name':'nombre', 'type':'categoria', 'year':'año', 'day':'día', 'month':'mes', 
+                'location':'ubicacion', 'num_of_people':'invitados', 'cost':'precio', 'upfront':'adelanto', 
+                'state':'estado','margin': 'margen', 'egresses':'coste', 'utility':'utilidad', 'food':'comida',
+                'beverages':'bebidas', 'salaries':'salarios',
+                'others': 'otros', 'salonPrice': 'costo_salon'
+            }
+            result = fixData(result)
+            index = 1
+            for payment in payments:
+                headers['payment{}'.format(index)] = 'pago_{}'.format(index)
+                result['payment{}'.format(index)] = payment
+                dollarValue.append('payment{}'.format(index))
+                index +=1 
+            print(result)
+            df = pd.DataFrame([result])
+            print(df)
+            return returnExcel(df, headers, 'margen', 'detalles', dollarValue, inThousands)
+        else:
+            res['message'] = 'Evento no tiene margen de resultados concluido'
             statusCode = 404
     else:
         res['message'] = 'No se envio el id del evento'
