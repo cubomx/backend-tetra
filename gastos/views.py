@@ -80,8 +80,12 @@ def checkSearch(query, projection, table, errorMessage, successKey, failureKey):
 
 def getPayments(query):
     expenses = agendaTable.find_one(query, {"_id": 0, "expenses": 1, "cost":1, "upfront":1})
-    payments = list(abonosTable.find(query, {'_id':0,'quantity':1}).sort([("year", 1), ("month", 1), ("day", 1)]))
+    payments_ = list(abonosTable.find(query, {'_id':0,'quantity':1}).sort([("year", 1), ("month", 1), ("day", 1)]))
+
+    payments = []
     payments.append(expenses['upfront'])
+    for payment in payments_:
+        payments.append(payment['quantity'])
     return payments
 
 def getCount(query, categories, categoriesInEN):
@@ -400,7 +404,7 @@ def getMargenResultados(request):
         print('hehe')
         result = agendaTable.find_one({'id_event':data['id_event'], 'state':'completado'}, {'_id':0, 'expenses': 0})
         if result:
-            payments = getPayments({'id_event':data['id_event'], 'state':'completado'})
+            payments = getPayments({'id_event':data['id_event']})
             dollarValue = ['cost', 'upfront', 'egresses', 'utility', 'food', 'beverages', 'salaries', 'others', 'salonPrice']
             inThousands = ['num_of_people', 'margin']
             headers = {
@@ -412,14 +416,13 @@ def getMargenResultados(request):
             }
             result = fixData(result)
             index = 1
+            print(payments)
             for payment in payments:
                 headers['payment{}'.format(index)] = 'pago_{}'.format(index)
                 result['payment{}'.format(index)] = payment
                 dollarValue.append('payment{}'.format(index))
                 index +=1 
-            print(result)
             df = pd.DataFrame([result])
-            print(df)
             return returnExcel(df, headers, 'margen', 'detalles', dollarValue, inThousands)
         else:
             res['message'] = 'Evento no tiene margen de resultados concluido'
