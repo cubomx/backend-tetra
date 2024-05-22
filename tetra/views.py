@@ -75,6 +75,45 @@ def changePass(request):
     json_data = json_util.dumps(res)
     return HttpResponse(json_data, content_type='application/json', status=statusCode)
 
+def delUsuario(request):
+    if not request.content_type == 'application/json':
+        return HttpResponse([[{'message':'missing JSON'}]], content_type='application/json', status=400)
+    
+    result, statusCode = TokenVerification(request)
+
+    res = {}
+
+    data = json.loads(request.body.decode('utf-8'))
+    keys = ['email']
+    onlyAllowed = check_keys(data, keys)
+    allowed_roles = {'admin'}
+    result, statusCode = verifyRole(request, allowed_roles)
+
+    if statusCode != 200:
+        res = result
+    elif onlyAllowed and checkData(data, ['email'], {'email':str})[0]:
+        email = data['email']
+        user = usuariosTable.find_one({'email': email}, projection)
+        if user and len(user) > 0:
+            if 'isMaster' in user:
+                statusCode = 401
+                res['message'] = 'No se puede eliminar la cuenta maestra'
+            else:
+                result = usuariosTable.delete_one(data)
+                if result.acknowledged:
+                    res['message'] = 'Usuario eliminado satisfactoriamente'
+                else:
+                    statusCode = 500
+                    res['message'] = 'Se produjo un error al eliminar el usuario'
+        else:
+            res['message'] = 'Usuario no encontrado {}'.format(data['email'])
+    else:
+        res['message'] = 'Datos enviados incorrectos'
+        statusCode = 400
+
+    json_data = json_util.dumps(res)
+    return HttpResponse(json_data, content_type='application/json', status=statusCode)
+
 
 def login(request):
     if not request.content_type == 'application/json':
