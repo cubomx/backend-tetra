@@ -139,6 +139,9 @@ def login(request):
                 secret_key = settings.SECRET_KEY
                 bearer_token = generateBearer(secret_key, role=role)
                 res['token'] = bearer_token
+            else:
+                res['message'] = 'Credenciales incorrectas'
+                statusCode = 401
         else:
             res['message'] = 'Datos incorrectos'
             statusCode = 401
