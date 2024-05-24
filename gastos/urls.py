@@ -8,5 +8,6 @@ urlpatterns = [
     path('modifyGasto', views.modifyGasto, name='modifyGasto'),
     path('guardarEstadosResultados', views.guardarEstadoResultados, name='guardarEstadoResultados'),
     path('revertirMargenResultados', views.revertirMargenResultados, name='revertirMargenResultados'),
-    path('getMargenResultados', views.getMargenResultados, name='getMargenResultados')
+    path('getMargenResultados', views.getMargenResultados, name='getMargenResultados'),
+    path('getTotales', views.getTotales, name='getTotales')
 ]

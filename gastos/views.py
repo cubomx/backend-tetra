@@ -433,3 +433,44 @@ def getMargenResultados(request):
     print(data)
     json_data = json_util.dumps(res)
     return HttpResponse(json_data, content_type='application/json', status=statusCode)
+
+
+def pipeline(field, match):
+    pipeline = [
+        {
+            '$match': match
+        },
+        {
+            '$group': {
+                '_id': None,  # We do not want to group by any specific field, hence None
+                'total_sum': {'$sum': f'${field}'}
+            }
+        }
+    ]
+    return pipeline
+
+
+def getTotales(request):
+    if not request.content_type == 'application/json':
+        return HttpResponse([[{'message':'missing JSON'}]], content_type='application/json', status=400)
+    data = json.loads(request.body.decode('utf-8'))
+    res = {}
+    statusCode = 200
+    allowed_roles = {'admin', 'finance'}
+    result, statusCode = verifyRole(request, allowed_roles)
+    if statusCode != 200:
+        res = result
+    elif check_keys(data, ['day', 'month', 'year']):
+        total_gasto = list(gastosTable.aggregate(pipeline('amount', data)))
+        total_ingreso = list(abonosTable.aggregate(pipeline('quantity', data)))
+        totales = {}
+        totales['egresos'] = (total_gasto[0]['total_sum']) if len(total_gasto) > 0  else 0
+        totales['ingresos'] = (total_ingreso[0]['total_sum']) if len(total_ingreso) > 0  else 0
+
+        res['totales'] = totales
+    else:
+        res['message'] = 'No se envio la fecha'
+        statusCode = 400
+    print(data)
+    json_data = json_util.dumps(res)
+    return HttpResponse(json_data, content_type='application/json', status=statusCode)

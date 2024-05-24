@@ -103,8 +103,16 @@ def getAbono(request):
                         results.append(dict(doc))
             res = {'payments' : results}
     
-        elif check_keys(data, ['day', 'month']):
+        elif check_keys(data, ['day', 'month', 'year']):
             res['payments'], statusCode = findAbono(data, abonosTable)
+            if statusCode == 200:
+                for idx, payment in enumerate(res['payments']):
+                    id_event = payment['id_event']
+                    event = agendaTable.find_one({'id_event':id_event}, {'type': 1, 'name': 1, 'location':1, '_id':0})
+                    res['payments'][idx].update(event)
+            else:
+                res['message'] = res['payments']['message']
+                del res['payments']
         else:
             res = {'message':'ERROR. Se espera el ID del evento o del ticket (o ambos) en la petición JSON. O, por "day", "month", "type"'}
             statusCode = 400
