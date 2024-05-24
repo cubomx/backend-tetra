@@ -171,22 +171,29 @@ def delEvento(request):
 # check if all the keys are part of the collection
 
 def getEvento(request):
-    if not request.content_type == 'application/json':\
+    if not request.content_type == 'application/json':
         return HttpResponse([[{'message':'missing JSON'}]], content_type='application/json')
 
     data = json.loads(request.body.decode('utf-8'))
     statusCode = 200
 
-    expected_keys = ['name', 'type', 'year', 'day', 'month', 'location', 'num_of_people', 'cost', 'upfront', 'excel', 'state']
+    expected_keys = ['name', 'type', 'year', 'day', 'month', 'location', 'num_of_people', 'cost', 'upfront', 'excel', 'state', 'sortear']
     res = {}
     allowed_roles = {'admin', 'secretary', 'finance', 'inventary'}
     result, statusCode = verifyRole(request, allowed_roles)
 
     if statusCode != 200:
         res = result
-    elif data['state'] and isinstance(data['state'], list):
-         data['state'] = {'$in':data['state']}
-         res['events'] = list(agendaTable.find(data, projection))
+    elif 'state' in data and isinstance(data['state'], list):
+        data['state'] = {'$in':data['state']}
+        if 'sortear' in data and data['sortear'] <= 1:
+            sort = data['sortear']
+            del data['sortear']
+            res['events'] = list(agendaTable.find(data, projection).sort([('margin.margin', sort)]))
+        else:
+            res['events'] = list(agendaTable.find(data, projection))
+         
+
     elif check_keys(data, expected_keys):
         res['events'] = list(agendaTable.find(data, projection))
     elif checkData(data, ['id_event'], {'id_event' : str})[0]:
