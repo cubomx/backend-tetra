@@ -400,33 +400,34 @@ def getMargenResultados(request):
     result, statusCode = verifyRole(request, allowed_roles)
     if statusCode != 200:
         res = result
-    elif checkData(data, ['id_event'], {'id_event':str})[0]:
-        print('hehe')
-        result = agendaTable.find_one({'id_event':data['id_event'], 'state':'completado'}, {'_id':0, 'expenses': 0})
-        if result:
-            payments = getPayments({'id_event':data['id_event']})
-            dollarValue = ['cost', 'upfront', 'egresses', 'utility', 'food', 'beverages', 'salaries', 'others', 'salonPrice']
-            inThousands = ['num_of_people', 'margin']
-            headers = {
-                'name':'nombre', 'type':'categoria', 'year':'año', 'day':'día', 'month':'mes', 
-                'location':'ubicacion', 'num_of_people':'invitados', 'cost':'precio', 'upfront':'adelanto', 
-                'state':'estado','margin': 'margen', 'egresses':'coste', 'utility':'utilidad', 'food':'comida',
-                'beverages':'bebidas', 'salaries':'salarios',
-                'others': 'otros', 'salonPrice': 'costo_salon'
-            }
-            result = fixData(result)
-            index = 1
-            print(payments)
-            for payment in payments:
-                headers['payment{}'.format(index)] = 'pago_{}'.format(index)
-                result['payment{}'.format(index)] = payment
-                dollarValue.append('payment{}'.format(index))
-                index +=1 
-            df = pd.DataFrame([result])
-            return returnExcel(df, headers, 'margen', 'detalles', dollarValue, inThousands)
-        else:
-            res['message'] = 'Evento no tiene margen de resultados concluido'
-            statusCode = 404
+    elif checkData(data, ['id_event'], {'id_event':list})[0]:
+        print(data['id_event'])
+        dollarValue = ['cost', 'upfront', 'egresses', 'utility', 'food', 'beverages', 'salaries', 'others', 'salonPrice']
+        inThousands = ['num_of_people', 'margin']
+        headers = {
+            'name':'nombre', 'type':'categoria', 'year':'año', 'day':'día', 'month':'mes', 
+            'location':'ubicacion', 'num_of_people':'invitados', 'cost':'precio', 'upfront':'adelanto', 
+            'state':'estado','margin': 'margen', 'egresses':'coste', 'utility':'utilidad', 'food':'comida',
+            'beverages':'bebidas', 'salaries':'salarios',
+            'others': 'otros', 'salonPrice': 'costo_salon'
+        }
+        max_length = 0
+        total_result = []
+        for id_event in data['id_event']:
+            result = agendaTable.find_one({'id_event':id_event, 'state':'completado'}, {'_id':0, 'expenses': 0})
+            if result:
+                payments = getPayments({'id_event':id_event})
+                result = fixData(result)
+                max_length = len(payments) if len(payments) > max_length else max_length
+                for idx, payment in enumerate(payments):
+                    result['payment{}'.format(idx+1)] = payment
+                    dollarValue.append('payment{}'.format(idx+1))
+                total_result.append(result)
+        for index in range(max_length):
+            headers['payment{}'.format(index+1)] = 'pago_{}'.format(index+1)
+        df = pd.DataFrame(total_result)
+        return returnExcel(df, headers, 'margen', 'detalles', dollarValue, inThousands, max_length)
+
     else:
         res['message'] = 'No se envio el id del evento'
         statusCode = 400
@@ -474,3 +475,4 @@ def getTotales(request):
     print(data)
     json_data = json_util.dumps(res)
     return HttpResponse(json_data, content_type='application/json', status=statusCode)
+

@@ -117,14 +117,22 @@ def findAbono(query, collection):
         res = {'message' : 'Pagos no encontrados'}
     return (res, status)
 
-def returnExcel(df, headers, filename, sheet_name, dollarValues, quantityInThousands):
+def returnExcel(df, headers, filename, sheet_name, dollarValues, quantityInThousands, maxPayments):
     response = None
+
+    '''for i in range(1, maxPayments + 1):
+        payment_col = f'payment{i}'
+        if payment_col not in df.columns:
+            df[payment_col] = 0
+        else:
+            df[payment_col] = df[payment_col].fillna(0)'''
     
     # add format
     for key in dollarValues:
-        df[key] = '$' + (df[key].map('{:,.2f}'.format)).astype(str)
+        #df[key] = '$' + (df[key].fillna(0).map('{:,.2f}'.format)).astype(str)
+        df[key] = df[key].fillna(0).apply(lambda x: '${:,.2f}'.format(x) if isinstance(x, (int, float)) else x)
     for key in quantityInThousands:
-        df[key] = df[key].apply(lambda x: '{:,.2f}'.format(x))
+        df[key] = df[key].fillna(0).apply(lambda x: '{:,.2f}'.format(x))
 
     df.rename(columns=headers, inplace = True)
     # Create a temporary file to save the Excel data
