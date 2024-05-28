@@ -408,8 +408,8 @@ def getMargenResultados(request):
             'name':'nombre', 'type':'categoria', 'year':'año', 'day':'día', 'month':'mes', 
             'location':'ubicacion', 'num_of_people':'invitados', 'cost':'precio', 'upfront':'adelanto', 
             'state':'estado','margin': 'margen', 'egresses':'coste', 'utility':'utilidad', 'food':'comida',
-            'beverages':'bebidas', 'salaries':'salarios',
-            'others': 'otros', 'salonPrice': 'costo_salon'
+            'beverages':'bebidas', 'salaries':'salarios', 'furniture': 'inmobilario'
+            'others': 'otros', 'salonPrice': 'costo_salon', 'id_event':'id_evento', 
         }
         max_length = 0
         total_result = []
