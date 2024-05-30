@@ -402,14 +402,14 @@ def getMargenResultados(request):
         res = result
     elif checkData(data, ['id_event'], {'id_event':list})[0]:
         print(data['id_event'])
-        dollarValue = ['cost', 'upfront', 'egresses', 'utility', 'food', 'beverages', 'salaries', 'others', 'salonPrice']
+        dollarValue = ['cost', 'upfront', 'egresses', 'utility', 'food', 'beverages', 'salaries', 'others', 'salonPrice', 'furniture']
         inThousands = ['num_of_people', 'margin']
         headers = {
             'name':'nombre', 'type':'categoria', 'year':'año', 'day':'día', 'month':'mes', 
             'location':'ubicacion', 'num_of_people':'invitados', 'cost':'precio', 'upfront':'adelanto', 
             'state':'estado','margin': 'margen', 'egresses':'coste', 'utility':'utilidad', 'food':'comida',
-            'beverages':'bebidas', 'salaries':'salarios', 'furniture': 'inmobilario'
-            'others': 'otros', 'salonPrice': 'costo_salon', 'id_event':'id_evento', 
+            'beverages':'bebidas', 'salaries':'salarios', 'furniture': 'inmobilario',
+            'others': 'otros', 'salonPrice': 'costo_salon', 'id_event':'id_evento'
         }
         max_length = 0
         total_result = []
