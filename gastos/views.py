@@ -150,7 +150,7 @@ def getGasto(request):
                             id_expense = expense['id_expense']
                             print(id_expense)
                             query = {'id_expense':id_expense}
-                            fields_excluded = ['_id','quantity', 'allocation', 'available', 'id_expense', 'amount']
+                            fields_excluded = ['_id','quantity', 'allocation', 'id_expense', 'amount']
                             field_query = {field:0 for field in fields_excluded}
                             expense_data, newCode = checkSearch(query, field_query, gastosTable, 'Gasto no encontrado {}'.format(id_expense), 'expenses', 'message') 
                             if newCode == 200:
