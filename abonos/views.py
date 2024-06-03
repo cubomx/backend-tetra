@@ -35,7 +35,7 @@ def addAbono(request):
         if eventFound:
            
            print('Found event with id_event {}'.format(id_event))
-           id_ticket = generateTicketNumber(4, getDate())
+           id_ticket = generateTicketNumber(getDate())
            print('Ticket ID Number: {}'.format(id_ticket))
            # Define the time zone you want to work with
            tz = pytz.timezone('America/Mexico_City')  # Example: Eastern Time Zone

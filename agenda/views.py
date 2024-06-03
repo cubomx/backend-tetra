@@ -90,7 +90,7 @@ def addEvento(request):
 
     isDataCorrect, message = checkData(data, keys, types)
     statusCode = 400
-    id_event = getIDEvento(data, 4)
+    id_event = getIDEvento(data, 2)
     res = {}
     allowed_roles = {'admin', 'secretary'}
     result, statusCode = verifyRole(request, allowed_roles)

@@ -41,8 +41,10 @@ def addGasto(request):
             if isDataCorrect:
                 unit_price = data['amount'] / data['quantity']
                 data['unit_price'] = unit_price
-                date = str(data['day']) + str(data['month']) + str(data['year'])
-                data['id_expense'] = generateIDTicket(4, date)
+                month = '0' + str(data['month']) if data['month'] < 10 else str(data['month'])
+                day = '0' + str(data['day']) if data['day'] < 10 else str(data['day'])
+                date = day + month + str(data['year'])[2:]
+                data['id_expense'] = generateIDTicket(date)
                 res['message'] = message
                 if id_event == 'GENERAL':
                     data['available'] = data['quantity']

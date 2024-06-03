@@ -268,8 +268,10 @@ def deleteExtraQueries(data, expected_keys):
     return data
 
 def getIDEvento(data, bytes):
-    # Generate a random string
-    date = str(data['year']) + str(data['month']) + str(data['day'])
+    #check if month and day less than 10
+    month = '0' + str(data['month']) if data['month'] < 10 else str(data['month'])
+    day = '0' + str(data['day']) if data['day'] < 10 else str(data['day'])
+    date = str(data['year'])[2:] + month + day
     random_string = secrets.token_hex(bytes)  # Generate a random hex string of 16 bytes (32 characters)
     id_evento = random_string + str(date)
     
@@ -329,14 +331,17 @@ def getDate():
     present_date_str = present_date.strftime("%d-%m-%Y")
     return present_date_str
 
-def generateTicketNumber(bytes, date):
-    random_start = secrets.token_hex(bytes)  
-    randon_end = secrets.token_hex(bytes)
-    id_ticket = [random_start] + date.split('-') + [randon_end]
+def generateTicketNumber(date):
+    random_start = secrets.token_hex(1)  
+    randon_end = secrets.token_hex(1)
+    new_date = date.split('-')
+    new_date[2] = new_date[2][:2]
+    print(new_date)
+    id_ticket = [random_start] + new_date  + [randon_end]
     return ''.join(id_ticket)
 
-def generateIDTicket(bytes, date):
-    random_end = secrets.token_hex(bytes)  
+def generateIDTicket(date):
+    random_end = secrets.token_hex(2)  
     id_ticket = date + random_end
     return ''.join(id_ticket)
 
