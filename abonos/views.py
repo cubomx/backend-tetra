@@ -18,7 +18,7 @@ agendaTable = db['agenda']
 def addAbono(request): 
     data = json.loads(request.body.decode('utf-8'))
     keys = ['id_event', 'quantity', 'payer']
-    types = {'id_event' : str, 'quantity' : [float, int], 'payer' : [str]}
+    types = {'id_event' : str, 'invoice': str, 'quantity' : [float, int], 'payer' : [str]}
 
     statusCode = 200
     isDataCorrect, message = checkData(data, keys, types)
@@ -64,8 +64,6 @@ def addAbono(request):
         res['message'] = message 
         statusCode = 400
 
-
-    
     json_data = json_util.dumps(res)
     return HttpResponse(json_data, content_type='application/json', status=statusCode)
 
@@ -75,7 +73,7 @@ def getAbono(request):
     
     data = json.loads(request.body.decode('utf-8'))
     statusCode = 200
-    expected_keys = ['id_event', 'id_ticket']
+    expected_keys = ['id_event', 'invoice', 'id_ticket']
     res = {}
 
     allowed_roles = {'admin', 'finance', 'inventary', 'secretary'}

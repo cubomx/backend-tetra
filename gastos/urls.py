@@ -9,5 +9,6 @@ urlpatterns = [
     path('guardarEstadosResultados', views.guardarEstadoResultados, name='guardarEstadoResultados'),
     path('revertirMargenResultados', views.revertirMargenResultados, name='revertirMargenResultados'),
     path('getMargenResultados', views.getMargenResultados, name='getMargenResultados'),
-    path('getTotales', views.getTotales, name='getTotales')
+    path('getTotales', views.getTotales, name='getTotales'),
+    path('getEventData', views.getEventData, name='getEventData')
 ]

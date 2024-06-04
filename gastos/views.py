@@ -22,9 +22,9 @@ def addGasto(request):
 
     data = json.loads(request.body.decode('utf-8'))
     statusCode = 200
-    expected_keys = ['day', 'month', 'year', 'concept', 'amount', 'buyer', 'quantity', 'category']
+    expected_keys = ['day', 'month', 'year', 'concept', 'amount', 'buyer', 'quantity', 'category', 'invoice']
     types = {'date':str, 'concept':str, 'amount':[float,int], 'buyer':str, 
-             'quantity':[float, int], 'category':str, 'day':int, 'month':int, 'year':int, 'expense_type':str}
+             'quantity':[float, int], 'category':str, 'invoice':str, 'day':int, 'month':int, 'year':int, 'expense_type':str}
     res = {}
 
     allowed_roles = {'admin', 'finance'}
@@ -81,7 +81,7 @@ def checkSearch(query, projection, table, errorMessage, successKey, failureKey):
     return (result, statusCode)
 
 def getPayments(query):
-    expenses = agendaTable.find_one(query, {"_id": 0, "expenses": 1, "cost":1, "upfront":1})
+    expenses = agendaTable.find_one(query, {"_id": 0,  "upfront":1})
     payments_ = list(abonosTable.find(query, {'_id':0,'quantity':1}).sort([("year", 1), ("month", 1), ("day", 1)]))
 
     payments = []
@@ -478,3 +478,42 @@ def getTotales(request):
     json_data = json_util.dumps(res)
     return HttpResponse(json_data, content_type='application/json', status=statusCode)
 
+def getEventData(request):
+    if not request.content_type == 'application/json':
+        return HttpResponse([[{'message':'missing JSON'}]], content_type='application/json', status=400)
+    data = json.loads(request.body.decode('utf-8'))
+    res = {}
+    statusCode = 200
+    allowed_roles = {'admin', 'finance', 'inventary', 'secretary'}
+    result, statusCode = verifyRole(request, allowed_roles)
+    if statusCode != 200:
+        res = result
+    elif checkData(data, ['id_event'], {'id_event':str})[0]:
+        event = agendaTable.find_one({'id_event': data['id_event']}, projection)
+        print(event)
+        if event:
+            dta = {}
+            res['data'] = []
+            egresses = getCount(data, ['Alimentos', 'Bebidas', 'Salarios', 'Otros'], 
+            {'Alimentos':'food', 'Bebidas':'beverages','Salarios':'salaries','Otros':'others'})
+            del egresses['price']
+            del egresses['payments']
+
+            total_egresses = 0
+            for value in egresses.values():
+                total_egresses += value
+            
+            total_ingreso = list(abonosTable.aggregate(pipeline('quantity', data)))
+
+            
+            dta['ingresses'] = (total_ingreso[0]['total_sum']) if len(total_ingreso) > 0  else 0
+            dta['egresses'] = total_egresses
+            dta.update(event)
+            dta.update(egresses)
+            res['data'] = dta
+        else:
+            res['message'] = 'No se encontro el evento {}'.format(data['id_event'])
+            statusCode = 404
+
+    json_data = json_util.dumps(res)
+    return HttpResponse(json_data, content_type='application/json', status=statusCode)
