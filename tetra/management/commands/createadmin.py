@@ -1,13 +1,14 @@
 # management/commands/createadmin.py
 
 from django.core.management.base import BaseCommand
+from django.conf import settings
 import pymongo
 import sys
 sys.path.append('../')
 from helpers.admin import hashPassword
 
-client =  pymongo.MongoClient('localhost', 27017, username='root', password='example')
-db = client['tetra']
+client =  pymongo.MongoClient(settings.DB['HOST'], settings.DB['PORT'], username=settings.DB['USER'], password=settings.DB['PASS'])
+db = client[settings.DB['NAME']]
 usuariosTable = db['usuarios']
 
 class Command(BaseCommand):

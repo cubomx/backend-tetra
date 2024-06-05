@@ -9,8 +9,8 @@ from helpers.admin import verifyRole, generateBearer, hashPassword, TokenVerific
 from .helpers import addToOptions, getOptions, delOptions
 from django.conf import settings
 
-client =  pymongo.MongoClient('localhost', 27017, username='root', password='example')
-db = client['tetra']
+client =  pymongo.MongoClient(settings.DB['HOST'], settings.DB['PORT'], username=settings.DB['USER'], password=settings.DB['PASS'])
+db = client[settings.DB['NAME']]
 usuariosTable = db['usuarios']
 adminTable = db['configuraciones']
 projection = {"_id": False}
@@ -196,80 +196,98 @@ def register(request):
     json_data = json_util.dumps(res)
     return HttpResponse(json_data, content_type='application/json', status=statusCode)
 
-def addEventType(request):
+def delOption(request, key, types, optionsKey, message):
     if not request.content_type == 'application/json':
         return HttpResponse([[{'message':'missing JSON'}]], content_type='application/json', status=400)
-    
+    res = {}
     allowed_roles = {'admin'}
     result, statusCode = verifyRole(request, allowed_roles)
-    res = {}
     if statusCode != 200:
         res = result
     else:
-        res, statusCode = addToOptions(adminTable, request, ['type'], {'type': str}, 'types', 'tipo de evento')
+        res, statusCode =  delOptions(adminTable, request, key, types, optionsKey, message)
     json_data = json_util.dumps(res)
     return HttpResponse(json_data, content_type='application/json', status=statusCode)
+
+def addOption(request, key, types, optionsKey, message):
+    if not request.content_type == 'application/json':
+        return HttpResponse([[{'message':'missing JSON'}]], content_type='application/json', status=400)
+    res = {}
+    allowed_roles = {'admin'}
+    result, statusCode = verifyRole(request, allowed_roles)
+    if statusCode != 200:
+        res = result
+    else:
+        res, statusCode = addToOptions(adminTable, request, key, types, optionsKey, message)
+    json_data = json_util.dumps(res)
+    return HttpResponse(json_data, content_type='application/json', status=statusCode)
+
+def get(request, key, message):
+    allowed_roles = {'admin', 'finance', 'inventary', 'secretary'}
+    result, statusCode = verifyRole(request, allowed_roles)
+    if statusCode != 200:
+        res = result
+    else:
+        res, statusCode = getOptions(adminTable, key, message)
+    json_data = json_util.dumps(res)
+    return HttpResponse(json_data, content_type='application/json', status=statusCode)
+
+def addEventType(request):
+    return addOption(request, ['type'], {'type': str}, 'types', 'tipo de evento')
 
 def getEventTypes(request):
-    allowed_roles = {'admin', 'finance', 'inventary', 'secretary'}
-    result, statusCode = verifyRole(request, allowed_roles)
-    if statusCode != 200:
-        res = result
-    else:
-        res, statusCode = getOptions(adminTable, 'types', 'tipo de evento')
-    json_data = json_util.dumps(res)
-    return HttpResponse(json_data, content_type='application/json', status=statusCode)
-
+    return get(request, 'types', 'tipo de evento')
 
 def delEventType(request):
-    if not request.content_type == 'application/json':
-        return HttpResponse([[{'message':'missing JSON'}]], content_type='application/json', status=400)
-    
-    allowed_roles = {'admin'}
-    result, statusCode = verifyRole(request, allowed_roles)
-    res = {}
-    if statusCode != 200:
-        res = result
-    else:
-        res, statusCode =  delOptions(adminTable, request, ['type'], {'type':str}, 'types', 'tipo de evento')
-    
-    json_data = json_util.dumps(res)
-    return HttpResponse(json_data, content_type='application/json', status=statusCode)
+    return delOption(request, ['type'], {'type':str}, 'types', 'tipo de evento')
 
 def addLocation(request):
-    if not request.content_type == 'application/json':
-        return HttpResponse([[{'message':'missing JSON'}]], content_type='application/json', status=400)
-    res = {}
-    allowed_roles = {'admin'}
-    result, statusCode = verifyRole(request, allowed_roles)
-    if statusCode != 200:
-        res = result
-    else:
-        res, statusCode = addToOptions(adminTable, request, ['location'], {'location': str}, 'locations', 'lugar de evento')
-    json_data = json_util.dumps(res)
-    return HttpResponse(json_data, content_type='application/json', status=statusCode)
+    return addOption(request, ['location'], {'location': str}, 'locations', 'lugar de evento')
 
 def getLocations(request):
-    allowed_roles = {'admin', 'finance', 'inventary', 'secretary'}
-    result, statusCode = verifyRole(request, allowed_roles)
-    res = {}
-    if statusCode != 200:
-        res = result
-    else:
-        res, statusCode = getOptions(adminTable, 'locations', 'lugar de evento')
-    json_data = json_util.dumps(res)
-    return HttpResponse(json_data, content_type='application/json', status=statusCode)
+    return get(request, 'locations', 'lugar de evento')
 
 def delLocation(request):
+    return delOption(request, ['location'], {'location':str}, 'locations', 'lugar de evento')
+
+# Expenses/Ingresses Options
+def addConcept(request):
     if not request.content_type == 'application/json':
         return HttpResponse([[{'message':'missing JSON'}]], content_type='application/json', status=400)
-    res = {}
-    allowed_roles = {'admin'}
-    result, statusCode = verifyRole(request, allowed_roles)
-    if statusCode != 200:
-        res = result
-    else:
-        res, statusCode =  delOptions(adminTable, request, ['location'], {'location':str}, 'locations', 'lugar de evento')
-    
-    json_data = json_util.dumps(res)
-    return HttpResponse(json_data, content_type='application/json', status=statusCode)
+    data = json.loads(request.body.decode('utf-8'))
+    type_ = data['type']
+    return addOption(request, ['concept'], {'concept':str}, type_, 'ingreso de evento')
+
+def getConcepts(request):
+    if not request.content_type == 'application/json':
+        return HttpResponse([[{'message':'missing JSON'}]], content_type='application/json', status=400)
+    data = json.loads(request.body.decode('utf-8'))
+    type_ = data['type']
+    return get(request, type_, 'ingreso de evento')
+
+def delConcepts(request):
+    if not request.content_type == 'application/json':
+        return HttpResponse([[{'message':'missing JSON'}]], content_type='application/json', status=400)
+    data = json.loads(request.body.decode('utf-8'))
+    type_ = data['type']
+    return delOption(request, ['concept'], {'concept':str}, type_ , 'ingreso de evento')
+
+
+# Providers
+def addProvider(request):
+    return addOption(request, ['provider'], {'provider':str}, 'providers', 'proveedor')
+
+def getProviders(request):
+    return get(request, 'providers', 'proveedores')
+
+def delProvider(request):
+    return delOption(request, ['provider'], {'provider':str}, 'providers', 'proveedor')
+
+def addGenProvider(request):
+    return addOption(request, ['provider'], {'provider':str}, 'gen_providers', 'proveedor general')
+
+def getGenProviders(request):
+    return get(request, 'gen_providers', 'proveedores generales')
+
+def delGenProvider(request):
+    return delOption(request, ['provider'], {'provider':str}, 'gen_providers', 'proveedor general')

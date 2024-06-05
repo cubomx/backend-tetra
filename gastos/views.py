@@ -1,4 +1,5 @@
 from django.http import HttpResponse
+from django.conf import settings
 import pandas as pd
 import pymongo
 import json
@@ -8,8 +9,8 @@ sys.path.append('../')
 from helpers.helpers import checkData, generateIDTicket, returnExcel, search, check_keys, searchWithProjection, updateData
 from helpers.admin import verifyRole
 
-client =  pymongo.MongoClient('localhost', 27017, username='root', password='example')
-db = client['tetra']
+client =  pymongo.MongoClient(settings.DB['HOST'], settings.DB['PORT'], username=settings.DB['USER'], password=settings.DB['PASS'])
+db = client[settings.DB['NAME']]
 abonosTable = db['abonos']
 agendaTable = db['agenda']
 gastosTable = db['gastos']
@@ -22,9 +23,9 @@ def addGasto(request):
 
     data = json.loads(request.body.decode('utf-8'))
     statusCode = 200
-    expected_keys = ['day', 'month', 'year', 'concept', 'amount', 'buyer', 'quantity', 'category', 'invoice']
+    expected_keys = ['day', 'month', 'year', 'concept', 'amount', 'buyer', 'quantity', 'invoice']
     types = {'date':str, 'concept':str, 'amount':[float,int], 'buyer':str, 
-             'quantity':[float, int], 'category':str, 'invoice':str, 'day':int, 'month':int, 'year':int, 'expense_type':str}
+             'quantity':[float, int], 'invoice':str, 'day':int, 'month':int, 'year':int, 'expense_type':str}
     res = {}
 
     allowed_roles = {'admin', 'finance'}
@@ -169,7 +170,7 @@ def getGasto(request):
             
         elif checkData(data, ['filters'], {'filters' : dict})[0]:
             result = None
-            if check_keys(data['filters'], ['day', 'month', 'year', 'category', 'expense_type']):
+            if check_keys(data['filters'], ['day', 'month', 'year', 'concept', 'expense_type']):
                 result, statusCode = checkSearch(data['filters'], projection, gastosTable, 'ERROR: Gastos no encontrados', 'expenses', 'message')
             if statusCode == 200:
                 res['expenses'] = result
@@ -196,7 +197,7 @@ def searchExpense(expenses, id_expense):
     return -1
 
 def searchInExpense(id_expense):
-    fields_excluded = ['_id', 'day', 'month', 'year', 'concept', 'category', 'expense_type', 'buyer', 'id_expense']
+    fields_excluded = ['_id', 'day', 'month', 'year', 'concept', 'concept', 'expense_type', 'buyer', 'id_expense']
     field_query = {field:0 for field in fields_excluded}
     expense, statusCode = searchWithProjection({'id_expense':id_expense}, field_query, gastosTable, 'Gasto no encontrado')
     return (expense, statusCode)

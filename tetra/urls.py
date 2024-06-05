@@ -34,5 +34,11 @@ urlpatterns = [
     path('getLugares', views.getLocations, name='get locations of events'),
     path('delLugar', views.delLocation, name='del location of event'),
     path('editarUsuario', views.changePass, name='edit user'),
-    path('delUsuario', views.delUsuario, name='del user')
+    path('delUsuario', views.delUsuario, name='del user'),
+    path('addConcepto', views.addConcept, name='add concept of event'),
+    path('getConceptos', views.getConcepts, name='get concepts of events'),
+    path('delConcepto', views.delConcepts, name='del concept'),
+    path('addProveedor', views.addProvider, name='add provider'),
+    path('getProveedor', views.getProviders, name='get providers'),
+    path('delProveedor', views.delProvider, name='del providers'),
 ]

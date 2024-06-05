@@ -1,5 +1,6 @@
 import math
 from django.http import HttpResponse, FileResponse
+from django.conf import settings
 import pandas as pd
 import pymongo
 import json
@@ -9,8 +10,8 @@ sys.path.append('../')
 from helpers.helpers import search, getIDEvento, checkData, check_keys, updateData, returnExcel, searchWithProjection
 from helpers.admin import verifyRole
 
-client =  pymongo.MongoClient('localhost', 27017, username='root', password='example')
-db = client['tetra']
+client =  pymongo.MongoClient(settings.DB['HOST'], settings.DB['PORT'], username=settings.DB['USER'], password=settings.DB['PASS'])
+db = client[settings.DB['NAME']]
 agendaTable = db['agenda']
 gastosTable = db['gastos']
 abonosTable = db['abonos']

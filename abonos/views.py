@@ -1,4 +1,5 @@
 from django.http import HttpResponse
+from django.conf import settings
 import pymongo
 import json
 from bson import json_util
@@ -9,8 +10,8 @@ from helpers.admin import verifyRole
 import datetime
 import pytz
 
-client =  pymongo.MongoClient('localhost', 27017, username='root', password='example')
-db = client['tetra']
+client =  pymongo.MongoClient(settings.DB['HOST'], settings.DB['PORT'], username=settings.DB['USER'], password=settings.DB['PASS'])
+db = client[settings.DB['NAME']]
 abonosTable = db['abonos']
 agendaTable = db['agenda']
 
