@@ -50,10 +50,13 @@ class Command(BaseCommand):
         in_concepts = load_json(os.path.join(base_dir, 'in_concepts.json'))
         out_concepts = load_json(os.path.join(base_dir, 'out_concepts.json'))
         gen_concepts = load_json(os.path.join(base_dir, 'gen_concepts.json'))
+        providers = load_json(os.path.join(base_dir, 'providers.json'))
+        gen_providers = load_json(os.path.join(base_dir, 'gen_providers.json'))
 
         addOption(configTable, places, 'locations', 'lugar')
         addOption(configTable, types, 'types', 'tipo de evento')
         addOption(configTable, in_concepts, 'in_concepts', 'concepto de ingreso')
         addOption(configTable, out_concepts, 'out_concepts', 'concepto de egreso')
         addOption(configTable, gen_concepts, 'gen_concepts', 'concepto de gasto general')
-
+        addOption(configTable, providers, 'providers', 'proveedores')
+        addOption(configTable, gen_providers, 'gen_providers', 'proveedores generales')
