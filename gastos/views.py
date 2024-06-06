@@ -23,9 +23,8 @@ def addGasto(request):
 
     data = json.loads(request.body.decode('utf-8'))
     statusCode = 200
-    expected_keys = ['day', 'month', 'year', 'concept', 'amount', 'buyer', 'quantity', 'invoice']
-    types = {'date':str, 'concept':str, 'amount':[float,int], 'buyer':str, 
-             'quantity':[float, int], 'invoice':str, 'day':int, 'month':int, 'year':int, 'expense_type':str}
+    expected_keys = ['day', 'month', 'year', 'concept', 'amount', 'buyer', 'invoice']
+    types = {'date':str, 'concept':str, 'amount':[float,int], 'buyer':str, 'invoice':str, 'day':int, 'month':int, 'year':int, 'expense_type':str}
     res = {}
 
     allowed_roles = {'admin', 'finance'}
@@ -40,35 +39,48 @@ def addGasto(request):
             del data['id_event']
             isDataCorrect, message  = checkData(data, expected_keys, types)
             if isDataCorrect:
-                unit_price = data['amount'] / data['quantity']
-                data['unit_price'] = unit_price
+                if checkData(data, ['quantity'], {'quantity':[float,int]})[0]:
+                    data['unit_price'] = data['amount'] / data['quantity']
+                
                 month = '0' + str(data['month']) if data['month'] < 10 else str(data['month'])
                 day = '0' + str(data['day']) if data['day'] < 10 else str(data['day'])
                 date = day + month + str(data['year'])[2:]
                 data['id_expense'] = generateIDTicket(date)
                 res['message'] = message
-                if id_event == 'GENERAL':
-                    data['available'] = data['quantity']
+                if data['expense_type'] != 'Inventario':
+                    if id_event != 'GENERAL':
+                        # this is a general expense of a event
+                        update_query = {"$push": {"expenses": {'id_expense':data['id_expense'], 'expense_type':data['expense_type']}}}
+                        queryResponse = updateData(agendaTable, {'id_event': id_event}, update_query)
+                    
                     result = gastosTable.insert_one(data)
                     if result.inserted_id:
                         res['message'] = 'Se agrego con exito el ticket {} al {}'.format(data['id_expense'], data['expense_type'])
                     else:
                         res['message'] = 'Hubo un error al agregar el ticket {} al {}'.format(data['id_expense'], data['expense_type'])
                 else:
-                    if search({'id_event' : id_event}, agendaTable):
-                        data['available'] = 0
-                        data['allocation'] = [{'id_event' : id_event}]
-                        result = gastosTable.insert_one(data)
-                        # Also, we need to add the reference of the allocation
-                        update_query = {"$push": {"expenses": {'id_expense':data['id_expense'],'portion' : data['quantity']}}}
-                        queryResponse = updateData(agendaTable, {'id_event': id_event}, update_query)
-                        if queryResponse['result'] > 0:
-                            res['message'] = 'Se agrego con exito el ticket {} al evento {}'.format(data['id_expense'], id_event)
+                    if id_event != 'GENERAL':
+                        if search({'id_event' : id_event}, agendaTable):
+                            data['available'] = 0
+                            data['allocation'] = [{'id_event' : id_event}]
+                            result = gastosTable.insert_one(data)
+                            # Also, we need to add the reference of the allocation
+                            update_query = {"$push": {"expenses": {'id_expense':data['id_expense'],'portion' : data['quantity'], 'expense_type':data['expense_type']}}}
+                            queryResponse = updateData(agendaTable, {'id_event': id_event}, update_query)
+                            if queryResponse['result'] > 0:
+                                res['message'] = 'Se agrego con exito el ticket {} al evento {}'.format(data['id_expense'], id_event)
+                            else:
+                                res['message'] = 'Hubo un error al agregar el ticket {} al evento {}'.format(data['id_expense'], id_event)
                         else:
-                            res['message'] = 'Hubo un error al agregar el ticket {} al evento {}'.format(data['id_expense'], id_event)
+                            res['message'] = 'Evento no encontrado: {}'.format(id_event)
+                            statusCode = 404
                     else:
-                        res['message'] = 'Evento no encontrado: {}'.format(id_event)
-                        statusCode = 404
+                        data['available'] = data['quantity']
+                        result = gastosTable.insert_one(data)
+                        if result.inserted_id:
+                            res['message'] = 'Se agrego con exito el ticket {} al {}'.format(data['id_expense'], data['expense_type'])
+                        else:
+                            res['message'] = 'Hubo un error al agregar el ticket {} al {}'.format(data['id_expense'], data['expense_type'])
             else:
                 res['message'] = message
     
@@ -116,7 +128,7 @@ def getCount(query, categories, categoriesInEN):
         
         # If the expense is found
         if expense_details:
-            category = expense_details["category"]
+            concept = expense_details["concept"]
             unit_price = expense_details["unit_price"]
             portion = expense["portion"]
             
@@ -124,7 +136,7 @@ def getCount(query, categories, categoriesInEN):
             amount = unit_price * portion
             
             # Update category total
-            totals[categoriesInEN[category]] = totals.get(categoriesInEN[category], 0) + amount
+            totals[concept] = totals.get(concept, 0) + amount
     return totals
     
 
@@ -132,7 +144,7 @@ def getGasto(request):
     if not request.content_type == 'application/json':
         return HttpResponse([[{'message':'missing JSON'}]], content_type='application/json', status=400)
 
-    data = json.loads(request.body.decode('utf-8'))
+    payload = json.loads(request.body.decode('utf-8'))
     res = {'expenses':[]}
     statusCode = 200
     
@@ -141,46 +153,49 @@ def getGasto(request):
     if statusCode != 200:
         res = result
     else: 
-        if checkData(data, ['expenses'], {'expenses' : dict})[0]:
-            if checkData(data['expenses'], ['id_event'], {'id_event':str})[0]:
-                id_event = data['expenses']['id_event']
+        if checkData(payload, ['expenses'], {'expenses' : dict})[0]:
+            if checkData(payload['expenses'], ['id_event', 'expense_type'], {'id_event':str, 'expense_type':list})[0]:
+                id_event = payload['expenses']['id_event']
                 query = {'id_event': id_event}
                 errorMessage = 'ERROR: Evento no encontrado {}'.format(id_event)
                 result, statusCode = checkSearch(query, {'expenses': 1, "_id": 0}, agendaTable, errorMessage, 'expenses', 'message')
                 if statusCode == 200:
                     for i in result:
                         for expense in i['expenses']:
-                            id_expense = expense['id_expense']
-                            print(id_expense)
-                            query = {'id_expense':id_expense}
-                            fields_excluded = ['_id','quantity', 'allocation', 'id_expense', 'amount']
-                            field_query = {field:0 for field in fields_excluded}
-                            expense_data, newCode = checkSearch(query, field_query, gastosTable, 'Gasto no encontrado {}'.format(id_expense), 'expenses', 'message') 
-                            if newCode == 200:
-                                for data in expense_data:
-                                    expense.update(data)
-                            # get the cost proportionated cost 
-                            expense['amount'] = expense['portion'] * expense['unit_price']
-                            res['expenses'].append(expense)
+                            if expense['expense_type'] in payload['expenses']['expense_type']:
+                                id_expense = expense['id_expense']
+                                query = {'id_expense':id_expense}
+                                fields_excluded = ['_id','allocation', 'id_expense']
+                                field_query = {field:0 for field in fields_excluded}
+                                expense_data, newCode = checkSearch(query, field_query, gastosTable, 'Gasto no encontrado {}'.format(id_expense), 'expenses', 'message') 
+                                if newCode == 200:
+                                    for data in expense_data:
+                                        expense.update(data)
+                                # get the cost proportionated cost 
+                                print(expense_data)
+                                if checkData(expense_data[0], ['quantity'], {'quantity':[int,float]})[0]:
+                                    print("hehehehheheheh")
+                                    expense['amount'] = expense['portion'] * expense_data[0]['unit_price']
+                                res['expenses'].append(expense)
                 else:
                     res['message'] = result
             else:
                 res['message'] = 'ID de evento no proporcionado'
                 statusCode = 400
             
-        elif checkData(data, ['filters'], {'filters' : dict})[0]:
+        elif checkData(payload, ['filters'], {'filters' : dict})[0]:
             result = None
-            if check_keys(data['filters'], ['day', 'month', 'year', 'concept', 'expense_type']):
-                result, statusCode = checkSearch(data['filters'], projection, gastosTable, 'ERROR: Gastos no encontrados', 'expenses', 'message')
+            if check_keys(payload['filters'], ['day', 'month', 'year', 'concept', 'expense_type']):
+                result, statusCode = checkSearch(payload['filters'], projection, gastosTable, 'ERROR: Gastos no encontrados', 'expenses', 'message')
             if statusCode == 200:
                 res['expenses'] = result
             elif statusCode != 200:
                 res = result[0]
-        elif checkData(data, ['id_event'], {'id_event':str})[0]:
-            if agendaTable.find_one(data):
-                res['expenses'] = getCount(data, ['Alimentos', 'Bebidas', 'Salarios', 'Otros'], {'Alimentos':'food', 'Bebidas':'beverages','Salarios':'salaries','Otros':'others'})
+        elif checkData(payload, ['id_event'], {'id_event':str})[0]:
+            if agendaTable.find_one(payload):
+                res['expenses'] = getCount(payload)
             else:
-                res = {'message':'No se encontro el evento {}'.format(data['id_event'])}
+                res = {'message':'No se encontro el evento {}'.format(payload['id_event'])}
                 statusCode = 404
         else:
             res['message'] = 'Falta la informacion "expenses"/"filters"'
@@ -197,7 +212,7 @@ def searchExpense(expenses, id_expense):
     return -1
 
 def searchInExpense(id_expense):
-    fields_excluded = ['_id', 'day', 'month', 'year', 'concept', 'concept', 'expense_type', 'buyer', 'id_expense']
+    fields_excluded = ['_id', 'day', 'month', 'year', 'concept', 'concept', 'buyer', 'id_expense']
     field_query = {field:0 for field in fields_excluded}
     expense, statusCode = searchWithProjection({'id_expense':id_expense}, field_query, gastosTable, 'Gasto no encontrado')
     return (expense, statusCode)
@@ -243,7 +258,6 @@ def modifyGasto(request):
         statusCode = 200
         
         if event:
-            print(event)
             portion = searchExpense(event[0]['expenses'], id_expense)
             if portion == -1:
                 if portionDesire <= 0.0:
@@ -253,10 +267,11 @@ def modifyGasto(request):
                     print('No encontramos el gasto deseado {} en el evento buscado: {}'.format(id_event, id_expense))
                     expense, statusCode = searchInExpense(id_expense)
                     if statusCode == 200:
+                        expense_type = expense[0]['expense_type']
                         available = expense[0]['available']
                         newAvailable = available - portionDesire
                         queryUpdateGastos = {'$push': {'allocation': {'id_event':id_event}}, '$set': {'available': newAvailable}}
-                        queryUpdateAgenda = {'$push': {'expenses': {'id_expense':id_expense,'portion' : portionDesire}}}
+                        queryUpdateAgenda = {'$push': {'expenses': {'id_expense':id_expense,'portion' : portionDesire, 'expense_type': expense[0]['expense_type']}}}
                         res, statusCode = checkExpenseAvailability(expense, portionDesire, 0,  id_event, id_expense, 
                             queryUpdateGastos, queryUpdateAgenda, available, {'id_expense': id_expense}, {'id_event': id_event})
                     else:
@@ -380,16 +395,16 @@ def revertirMargenResultados(request):
     json_data = json_util.dumps(res)
     return HttpResponse(json_data, content_type='application/json', status=statusCode)
 
-def fixData(result):
-    result['beverages'] = result['margin']['beverages']
-    result['food'] = result['margin']['food']
-    result['furniture'] = result['margin']['furniture']
-    result['salaries'] = result['margin']['salaries']
-    result['others'] = result['margin']['others']
-    result['utility'] = result['margin']['utility']
-    result['egresses'] = result['margin']['cost']
-    result['salonPrice'] = result['margin']['salonPrice']
-    result['margin'] = result['margin']['margin']
+def fixData(data):
+    final_result = {}
+    for key, value in data['margin'].items():
+    # Handle specific keys that need to be renamed
+        if key == 'cost':
+            result['egresses'] = value
+        elif key == 'margin':
+            result['margin'] = value
+        else:
+            result[key] = value
     return result
 
 
@@ -495,8 +510,7 @@ def getEventData(request):
         if event:
             dta = {}
             res['data'] = []
-            egresses = getCount(data, ['Alimentos', 'Bebidas', 'Salarios', 'Otros'], 
-            {'Alimentos':'food', 'Bebidas':'beverages','Salarios':'salaries','Otros':'others'})
+            egresses = getCount(data)
             del egresses['price']
             del egresses['payments']
 
