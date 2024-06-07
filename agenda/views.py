@@ -7,8 +7,10 @@ import json
 from bson import json_util
 import sys
 sys.path.append('../')
-from helpers.helpers import search, getIDEvento, checkData, check_keys, updateData, returnExcel, searchWithProjection
+from helpers.helpers import search, getIDEvento, checkData, check_keys, updateData, returnExcel, searchWithProjection, generateTicketNumber, getDate
 from helpers.admin import verifyRole
+import datetime
+import pytz
 
 client =  pymongo.MongoClient(settings.DB['HOST'], settings.DB['PORT'], username=settings.DB['USER'], password=settings.DB['PASS'])
 db = client[settings.DB['NAME']]
@@ -98,33 +100,44 @@ def addEvento(request):
     if statusCode != 200:
         message = result['message']
     elif isDataCorrect:
-        if data['cost'] < data['upfront']:
-            statusCode = 400
-            message = 'El pago del evento {} es menor al pago inicial {}'.format(data['cost'], data['upfront'])
-        else:  
+        query = {'location': data['location'], 
+                    'day': data['day'], 'month' : data['month'], 'year' : data['year'],
+                    'state': {'$in':['completado', 'pendiente']}}
+        eventFound = search(query, agendaTable)
+        if eventFound:
+            message = 'Espacio no disponible'
+            statusCode = 404
+        else:
+            data['id_event'] = id_event
+            if data['upfront'] > 0.0:
+                id_ticket = generateTicketNumber(getDate())
+                upfront = data['upfront']
+                id_event = data['id_event']     
 
-            query = {'location': data['location'], 
-                     'day': data['day'], 'month' : data['month'], 'year' : data['year'],
-                     'state': {'$in':['completado', 'pendiente']}}
-            eventFound = search(query, agendaTable)
-            if eventFound:
-                message = 'Espacio no disponible'
-                statusCode = 404
+                tz = pytz.timezone('America/Mexico_City')  # Example: Eastern Time Zone
+
+                    # Get the current date and time in the specified time zone
+                current_time = datetime.datetime.now(tz)
+
+                    # Format the date and time
+                formatted_time = current_time.strftime('%d-%m-%Y')
+                payload = {'payer':data['name'], 'concept':'Anticipo','invoice':'','id_event':id_event, 'quantity':upfront}
+                payload['id_ticket'] = id_ticket
+                payload['day'], payload['month'], payload['year']  = [int(x) for x in formatted_time.split('-')]
+                abonosTable.insert_one(payload)
+            data['expenses'] = []
+            data['state'] = 'pendiente'
+            result = agendaTable.insert_one(data)  
+            
+            if result.inserted_id:
+                status = 'con exito.'
+                res['id_event'] = id_event
+                statusCode = 200
             else:
-                data['id_event'] = id_event
-                data['expenses'] = []
-                data['state'] = 'pendiente'
-                result = agendaTable.insert_one(data)  
-                
-                if result.inserted_id:
-                    status = 'con exito.'
-                    res['id_event'] = id_event
-                    statusCode = 200
-                else:
-                    status = 'fallido.'
-                    statusCode = 400 
+                status = 'fallido.'
+                statusCode = 400 
 
-                message = 'Evento agregado {}'.format(status)
+            message = 'Evento agregado {}'.format(status)
     res['message'] = message
     json_data = json_util.dumps(res)
     response = HttpResponse(json_data, content_type='application/json', status=statusCode)
@@ -150,13 +163,17 @@ def delEvento(request):
 
         if result:
             expenses = result['expenses']
-            #res = agendaTable.delete_one(data)
+            # change event to cancelled
             updateData(agendaTable, {'id_event':id_event}, {'$set': {'expenses': [], 'state': 'cancelado'}})
-            # Check if the deletion was successful
+            # remove any assignment or remove completely an event expense
             for expense in expenses:
-                queryUpdateGastos = {'$inc': {'available': expense['portion']}, 
-                                        '$pull' : {'allocation':{'id_event':id_event}}}
-                updateData(gastosTable, {'id_expense':expense['id_expense']}, queryUpdateGastos)                
+                queryUpdateGastos = {}
+                if checkData(expense, ['portion'], {'portion':[int,float]})[0]:
+                    queryUpdateGastos = {'$inc': {'available': expense['portion']}, 
+                                            '$pull' : {'allocation':{'id_event':id_event}}}
+                    updateData(gastosTable, {'id_expense':expense['id_expense']}, queryUpdateGastos)  
+                else:
+                    gastosTable.delete_one({'id_expense':expense['id_expense']})
                 
             abonosTable.delete_many({'id_event':id_event})
             message = 'Evento eliminado exitosamente.'
@@ -178,7 +195,7 @@ def getEvento(request):
     data = json.loads(request.body.decode('utf-8'))
     statusCode = 200
 
-    expected_keys = ['name', 'type', 'year', 'day', 'month', 'location', 'num_of_people', 'cost', 'upfront', 'excel', 'state', 'sortear']
+    expected_keys = ['name', 'type', 'year', 'day', 'month', 'location', 'num_of_people', 'cost', 'excel', 'state', 'sortear']
     res = {}
     allowed_roles = {'admin', 'secretary', 'finance', 'inventary'}
     result, statusCode = verifyRole(request, allowed_roles)
@@ -220,7 +237,7 @@ def getEvento(request):
 
 def modifyEvento(request):
     data = json.loads(request.body.decode('utf-8'))
-    expected_keys = ['name',  'type', 'day', 'month', 'year', 'location', 'num_of_people', 'cost', 'upfront', 'id_event', 'state']
+    expected_keys = ['name',  'type', 'day', 'month', 'year', 'location', 'num_of_people', 'cost',  'id_event', 'state']
     statusCode = 200
 
     response = {}
@@ -229,10 +246,6 @@ def modifyEvento(request):
     if statusCode != 200:
         response = result
     elif checkData(data, ['id_event'], {'id_event' : str})[0]:
-        if check_keys(data, ['cost', 'upfront']):
-            if data['cost'] < data['upfront']:
-                statusCode = 400
-                response['message'] = 'El pago del evento {} es menor al pago inicial {}'.format(data['cost'], data['upfront'])
         if statusCode == 200 and check_keys(data, expected_keys):
             if checkData(data, ['location', 'day', 'month', 'year'], {'location' : str, 'day' : int, 'month' : int, 'year' : int})[0]:
                 query = {'location': data['location'], 

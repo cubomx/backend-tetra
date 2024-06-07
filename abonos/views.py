@@ -5,7 +5,7 @@ import json
 from bson import json_util
 import sys
 sys.path.append('../')
-from helpers.helpers import checkData, search, generateTicketNumber, getDate, check_keys, searchWithProjection, findAbono, deleteExtraQueries
+from helpers.helpers import checkData, search, generateTicketNumber, getDate, check_keys, searchWithProjection, findAbono, deleteExtraQueries, updateData
 from helpers.admin import verifyRole
 import datetime
 import pytz
@@ -91,7 +91,7 @@ def getAbono(request):
                 res['payments'] = result
         elif checkData(data, ['type'], {'type' : str })[0]:
             data = deleteExtraQueries(data, ['type', 'day', 'month'])
-            id_events, statusCode = searchWithProjection({'type' : data['type']}, {"_id": 0, "id_event": 1}, agendaTable, 'ERROR. Payment not found')
+            id_events, statusCode = searchWithProjection({'type' : data['type']}, {"_id": 0, "id_event": 1}, agendaTable, 'ERROR. Pago no encontrado')
             del data['type']
             results = []
             for id_event in id_events:
@@ -117,6 +117,37 @@ def getAbono(request):
             statusCode = 400
     json_data = json_util.dumps(res)
     return HttpResponse(json_data, content_type='application/json', status=statusCode)
+
+def editAbono(request):
+    if not request.content_type == 'application/json':\
+        return HttpResponse([[{'message':'missing JSON'}]], content_type='application/json')
+
+    data = json.loads(request.body.decode('utf-8'))
+    keys = ['id_event', 'id_ticket', 'quantity', 'payer', 'concept', 'day', 'month', 'year']
+    types = {'id_event' : str, 'id_ticket' : str, 'quantity' : [float, int], 'payer' : [str], 'concept':str, 'day':int, 'month':int, 'year':int}
+
+    isDataCorrect, message = checkData(data, keys, types)
+    res={}
+
+    allowed_roles = {'admin', 'finance'}
+    result, statusCode = verifyRole(request, allowed_roles)
+    if statusCode != 200:
+        res = result
+    elif isDataCorrect:
+        id_event = data['id_event']
+        id_ticket = data['id_ticket']
+        del data['id_event']
+        del data['id_ticket']
+        query = {"id_event": id_event}
+        eventFound = search(query, agendaTable)
+        if eventFound:
+            res = updateData(abonosTable, {'id_ticket': id_ticket}, { "$set" : data })
+        else:
+            statusCode = 404
+            res['message'] = 'Evento no encontrado'
+    json_data = json_util.dumps(res)
+    return HttpResponse(json_data, content_type='application/json', status=statusCode)
+
 
 def delAbono(request):
     if not request.content_type == 'application/json':\
