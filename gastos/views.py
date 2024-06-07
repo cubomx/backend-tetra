@@ -138,7 +138,121 @@ def getCount(query, categories, categoriesInEN):
             # Update category total
             totals[concept] = totals.get(concept, 0) + amount
     return totals
-    
+
+def editGasto(request):
+    if not request.content_type == 'application/json':
+        return HttpResponse([[{'message':'missing JSON'}]], content_type='application/json', status=400)
+
+    payload = json.loads(request.body.decode('utf-8'))
+    res = {}
+    allowed_roles = {'admin', 'finance', 'inventary'}
+    result, statusCode = verifyRole(request, allowed_roles)
+    expected_keys = ['day', 'month', 'year', 'concept', 'amount']
+    types = {'day':int, 'month':int, 'year':int, 'concept':str, 'amount':[int,float], 'id_expense':str, 'expense_type':str}
+    if statusCode != 200:
+        res = result
+    else:
+        id_expense = payload['id_expense']
+        if checkData(payload, expected_keys, types)[0]:
+            expense_type = payload['expense_type']
+            expense = gastosTable.find_one({'id_expense':id_expense}, {'_id':0})
+            if not expense:
+                res['message'] = 'Gasto no encontrado con ID {}'.format(id_expense)
+            elif expense_type == 'Inventario':
+                if  checkData(payload, ['quantity'], {'quantity':[int,float]})[0]:
+                    if expense['quantity'] > payload['quantity']:
+                        sumaPortion = 0
+                        # get all the assigned portions
+                        id_events = []
+                        for allocation in expense['allocation']:
+                            id_events.append(allocation['id_event'])
+                        pipeline = [
+                            {
+                                '$match': { 'id_event': { '$in': id_events } }
+                            },
+                            {
+                                '$unwind': '$expenses'
+                            },
+                            {
+                                '$match': { 'expenses.id_expense': id_expense }
+                            },
+                            {
+                                '$project': { 'portion': '$expenses.portion' }
+                            }
+                        ]   
+
+                        result = list(agendaTable.aggregate(pipeline))
+                        totalPortion = 0
+                        for assignment in result:
+                            totalPortion += assignment['portion']
+                        if totalPortion <= payload['quantity']:
+                            diff = payload['quantity'] - expense['quantity'] 
+                            resUpdate = updateData(gastosTable, {'id_expense':id_expense}, {'$set': payload, '$inc': {'available':diff}}) 
+                            res = resUpdate 
+                        else:
+                            res['message'] = 'Se esta queriendo reducir a menos de lo ya asignado entre los multiples eventos'
+                    else:
+                        diff = payload['quantity'] - expense['quantity'] 
+                        resUpdate = updateData(gastosTable, {'id_expense':id_expense}, {'$set': payload, '$inc': {'available':diff}}) 
+                        res = resUpdate 
+                else:
+                    del payload['quantity']
+                    resUpdate =updateData(gastosTable, {'id_expense':id_expense}, {'$set': payload}) 
+                    res = resUpdate 
+            else:
+                resUpdate =updateData(gastosTable, {'id_expense':id_expense}, {'$set': payload}) 
+                res = resUpdate 
+        else:
+            res['message'] = 'Error al enviar los datos'
+            statusCode = 400
+
+    json_data = json_util.dumps(res)
+    return HttpResponse(json_data, content_type='application/json', status=statusCode)
+
+
+def eliminar(table, payload):
+    result = table.delete_one(payload)
+    res = {}
+    statusCode = 200
+    if result.deleted_count > 0:
+        res['message'] = f"Se elimino: {result.deleted_count} con exito"
+    else:
+        res['message'] = 'No se pudo eliminar'
+        statusCode = 404
+    return (res, statusCode)
+
+
+def delGasto(request):
+    if not request.content_type == 'application/json':
+        return HttpResponse([[{'message':'missing JSON'}]], content_type='application/json', status=400)
+
+    payload = json.loads(request.body.decode('utf-8'))
+
+    allowed_roles = {'admin', 'finance', 'inventary'}
+    res = {}
+    result, statusCode = verifyRole(request, allowed_roles)
+    if statusCode != 200:
+        res = result
+    else:
+        if checkData(payload, ['id_expense'], {'id_expense':str})[0]:
+            id_expense = payload['id_expense']
+            expense = gastosTable.find_one(payload, {'allocation':1})
+            res, statusCode = eliminar(gastosTable, payload)
+            if statusCode == 200:
+                if checkData(expense, ['allocation'], {'allocation':list})[0]:
+                    for assignment in expense['allocation']:
+                        id_event = assignment['id_event']
+                        queryUpdateAgenda = {'$pull': {'expenses': {'id_expense':id_expense}}}
+                        res_ = updateData(agendaTable, {'id_event':id_event}, queryUpdateAgenda) 
+                        print(res_)
+                res['message'] = 'Se elimino con exito'
+        else:
+            statusCode = 400
+            res['message'] = 'Se enviaron mal los datos'
+
+
+    json_data = json_util.dumps(res)
+    return HttpResponse(json_data, content_type='application/json', status=statusCode)
 
 def getGasto(request):
     if not request.content_type == 'application/json':
