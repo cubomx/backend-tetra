@@ -161,36 +161,41 @@ def editGasto(request):
             elif expense_type == 'Inventario':
                 if  checkData(payload, ['quantity'], {'quantity':[int,float]})[0]:
                     if expense['quantity'] > payload['quantity']:
-                        sumaPortion = 0
-                        # get all the assigned portions
-                        id_events = []
-                        for allocation in expense['allocation']:
-                            id_events.append(allocation['id_event'])
-                        pipeline = [
-                            {
-                                '$match': { 'id_event': { '$in': id_events } }
-                            },
-                            {
-                                '$unwind': '$expenses'
-                            },
-                            {
-                                '$match': { 'expenses.id_expense': id_expense }
-                            },
-                            {
-                                '$project': { 'portion': '$expenses.portion' }
-                            }
-                        ]   
+                        if checkData(expense, 'allocation', {'allocation':list})[0]:
+                            # get all the assigned portions
+                            id_events = []
+                            for allocation in expense['allocation']:
+                                id_events.append(allocation['id_event'])
+                            pipeline = [
+                                {
+                                    '$match': { 'id_event': { '$in': id_events } }
+                                },
+                                {
+                                    '$unwind': '$expenses'
+                                },
+                                {
+                                    '$match': { 'expenses.id_expense': id_expense }
+                                },
+                                {
+                                    '$project': { 'portion': '$expenses.portion' }
+                                }
+                            ]   
 
-                        result = list(agendaTable.aggregate(pipeline))
-                        totalPortion = 0
-                        for assignment in result:
-                            totalPortion += assignment['portion']
-                        if totalPortion <= payload['quantity']:
-                            diff = payload['quantity'] - expense['quantity'] 
-                            resUpdate = updateData(gastosTable, {'id_expense':id_expense}, {'$set': payload, '$inc': {'available':diff}}) 
-                            res = resUpdate 
+                            result = list(agendaTable.aggregate(pipeline))
+                            totalPortion = 0
+                            for assignment in result:
+                                totalPortion += assignment['portion']
+                            if totalPortion <= payload['quantity']:
+                                diff = payload['quantity'] - expense['quantity'] 
+                                resUpdate = updateData(gastosTable, {'id_expense':id_expense}, {'$set': payload, '$inc': {'available':diff}}) 
+                                res = resUpdate 
+                            else:
+                                res['message'] = 'Se esta queriendo reducir a menos de lo ya asignado entre los multiples eventos'
                         else:
-                            res['message'] = 'Se esta queriendo reducir a menos de lo ya asignado entre los multiples eventos'
+                            payload['available'] = payload['quantity']
+                            print(payload)
+                            resUpdate = updateData(gastosTable, {'id_expense':id_expense}, {'$set': payload}) 
+                            res = resUpdate 
                     else:
                         diff = payload['quantity'] - expense['quantity'] 
                         resUpdate = updateData(gastosTable, {'id_expense':id_expense}, {'$set': payload, '$inc': {'available':diff}}) 

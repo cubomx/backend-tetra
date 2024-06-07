@@ -18,8 +18,8 @@ agendaTable = db['agenda']
 
 def addAbono(request): 
     data = json.loads(request.body.decode('utf-8'))
-    keys = ['id_event', 'quantity', 'payer']
-    types = {'id_event' : str, 'invoice': str, 'quantity' : [float, int], 'payer' : [str]}
+    keys = ['id_event', 'quantity', 'payer', 'invoice', 'concept']
+    types = {'id_event' : str, 'invoice': str, 'quantity' : [float, int], 'payer' : [str], 'concept':str}
 
     statusCode = 200
     isDataCorrect, message = checkData(data, keys, types)
@@ -144,6 +144,6 @@ def delAbono(request):
     else:
         message = 'No ID de ticket en JSON'
         status = 400
-    json_data = json_util.dumps([{"message": message}])
+    json_data = json_util.dumps({"message": message})
     
     return HttpResponse(json_data, content_type='application/json', status=status)
