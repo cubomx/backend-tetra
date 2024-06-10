@@ -353,45 +353,29 @@ def findAbono(query, collection):
         res = {'message' : 'Pagos no encontrados'}
     return (res, status)
 
-def returnExcel(df, headers, filename, sheet_name, dollarValues, quantityInThousands, maxPayments):
+def returnExcel(df, filename):
     response = None
-
-    '''for i in range(1, maxPayments + 1):
-        payment_col = f'payment{i}'
-        if payment_col not in df.columns:
-            df[payment_col] = 0
-        else:
-            df[payment_col] = df[payment_col].fillna(0)'''
-    
-    # add format
-    for key in dollarValues:
-        #df[key] = '$' + (df[key].fillna(0).map('{:,.2f}'.format)).astype(str)
-        df[key] = df[key].fillna(0).apply(lambda x: '${:,.2f}'.format(x) if isinstance(x, (int, float)) else x)
-    for key in quantityInThousands:
-        df[key] = df[key].fillna(0).apply(lambda x: '{:,.2f}'.format(x))
-
-    df.rename(columns=headers, inplace = True)
     # Create a BytesIO buffer
     buffer = BytesIO()
     
     # Write the DataFrame to the buffer as an Excel file
     with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-        df.to_excel(writer, index=False, sheet_name='Sheet1')
+        df.to_excel(writer, index=False, sheet_name='Resumen Cliente')
     
     # Move the cursor of the buffer to the beginning
     buffer.seek(0)
 
-    wb = load_workbook(buffer)
+    '''wb = load_workbook(buffer)
     encabezados, eventos = extrar_data(wb)
     wb_nuevo = dar_formato(encabezados, eventos)
 
     new_buffer = BytesIO()
     wb_nuevo.save(new_buffer)
     new_buffer.seek(0)
-    
+    '''
     # Create the HttpResponse with the appropriate content_type and headers
     response = HttpResponse(
-        new_buffer,
+        buffer,
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
     response['Content-Disposition'] = 'attachment; filename="salida.xlsx"'

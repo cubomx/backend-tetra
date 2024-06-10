@@ -103,22 +103,22 @@ def getPayments(query):
         payments.append(payment['quantity'])
     return payments
 
-def getCount(query, categories, categoriesInEN):
+def contains_renta_and_salon(s):
+    s_lower = s.lower()
+    return 'renta' in s_lower and 'salon' in s_lower
+
+def getCount(query):
     expenses = agendaTable.find_one(query, {"_id": 0, "expenses": 1, "cost":1, "upfront":1})
     payments = list(abonosTable.find(query, {'_id':0,'quantity':1}).sort([("year", 1), ("month", 1), ("day", 1)]))
 
     # Initialize a dictionary to store category totals
-    totals = {}
-    for category in categories:
-        totals[categoriesInEN[category]] = 0
+    totals = {'in':0, 'out':0, 'salon':0}
 
-    totals['payments'] = []
 
     totals['price'] = expenses['cost']
-    totals['payments'].append(expenses['upfront'])
 
     for payment in payments:
-        totals['payments'].append(payment['quantity'])
+        totals['in'] += payment['quantity']
     
     for expense in expenses['expenses']:
         id_expense = expense["id_expense"]
@@ -128,15 +128,22 @@ def getCount(query, categories, categoriesInEN):
         
         # If the expense is found
         if expense_details:
+            amount = 0
             concept = expense_details["concept"]
-            unit_price = expense_details["unit_price"]
-            portion = expense["portion"]
-            
-            # Calculate the amount
-            amount = unit_price * portion
+            if contains_renta_and_salon(concept):
+                totals['salon'] += expense_details["amount"]
+                amount = expense_details["amount"]
+            elif expense_details['expense_type'] == 'Inventary':
+                unit_price = expense_details["unit_price"]
+                portion = expense["portion"]
+                
+                # Calculate the amount
+                amount = unit_price * portion
+            else:
+                amount = expense_details["amount"]
             
             # Update category total
-            totals[concept] = totals.get(concept, 0) + amount
+            totals['out'] +=  amount
     return totals
 
 def editGasto(request):
@@ -443,14 +450,10 @@ def guardarEstadoResultados(request):
     result, statusCode = verifyRole(request, allowed_roles)
     if statusCode != 200:
         res = result
-    elif checkData(data, ['id_event', 'payments', 'food', 'beverages', 'furniture', 'others', 'margin', 'cost', 'price','salonPrice','utility'],
-        {'id_event':str, 'payments':list, 'food':[int,float], 'beverages':[int,float], 'furniture':[int,float], 'others':[int,float], 'margin':[int,float], 
-         'cost':[int,float], 'price':[int,float],'salonPrice':[int,float],'utility':[int,float]})[0]:
+    elif checkData(data, ['id_event','in', 'out','margin','utility'],
+        {'id_event':str, 'payments':list, 'in':[int,float], 'out':[int,float], 'margin':[int,float], 'salonPrice':[int,float],'utility':[int,float]})[0]:
             if agendaTable.find_one({'id_event': data['id_event']}):
                 id_event = data['id_event'] 
-                del data['id_event'] 
-                del data['payments']
-                del data['price']
                 updateData(agendaTable, {'id_event': id_event}, {'$set' : {'state':'completado', 'margin': data}})
                 res['message'] = 'Se concluyo con exito'
             else:
@@ -488,43 +491,14 @@ def revertirMargenResultados(request):
     json_data = json_util.dumps(res)
     return HttpResponse(json_data, content_type='application/json', status=statusCode)
 
-def revertirMargenResultados(request):
-    if not request.content_type == 'application/json':
-        return HttpResponse([[{'message':'missing JSON'}]], content_type='application/json', status=400)
-    data = json.loads(request.body.decode('utf-8'))
-    res = {}
-    statusCode = 200
-    allowed_roles = {'admin', 'finance'}
-    result, statusCode = verifyRole(request, allowed_roles)
-    if statusCode != 200:
-        res = result
-    elif checkData(data, ['id_event'], {'id_event':str})[0]:
-        print('hehe')
-        if agendaTable.find_one({'id_event':data['id_event'], 'state':'completado'}):
-            updateData(agendaTable, {'id_event':data['id_event'], 'state':'completado'}, 
-                       {'$set' : {'state':'pendiente'}, '$unset': {'margin': ''}})
-            res['message'] = 'Se revirtio con exito el evento'
-        else:
-            res['message'] = 'Evento no encontrado'
-            statusCode = 404
-    else:
-        res['message'] = 'No se envio el id del evento'
-        statusCode = 400
-    print(data)
-    json_data = json_util.dumps(res)
-    return HttpResponse(json_data, content_type='application/json', status=statusCode)
-
 def fixData(data):
     final_result = {}
     for key, value in data['margin'].items():
-    # Handle specific keys that need to be renamed
-        if key == 'cost':
-            result['egresses'] = value
-        elif key == 'margin':
-            result['margin'] = value
+        if key == 'margin':
+            final_result['margin'] = value
         else:
-            result[key] = value
-    return result
+            final_result[key] = value
+    return final_result
 
 
 def getMargenResultados(request):
@@ -537,33 +511,57 @@ def getMargenResultados(request):
     result, statusCode = verifyRole(request, allowed_roles)
     if statusCode != 200:
         res = result
-    elif checkData(data, ['id_event'], {'id_event':list})[0]:
+    elif checkData(data, ['id_event'], {'id_event':str})[0]:
         print(data['id_event'])
-        dollarValue = ['cost', 'upfront', 'egresses', 'utility', 'food', 'beverages', 'salaries', 'others', 'salonPrice', 'furniture']
-        inThousands = ['num_of_people', 'margin']
-        headers = {
-            'name':'nombre', 'type':'categoria', 'year':'año', 'day':'día', 'month':'mes', 
-            'location':'ubicacion', 'num_of_people':'invitados', 'cost':'precio', 'upfront':'adelanto', 
-            'state':'estado','margin': 'margen', 'egresses':'coste', 'utility':'utilidad', 'food':'comida',
-            'beverages':'bebidas', 'salaries':'salarios', 'furniture': 'inmobilario',
-            'others': 'otros', 'salonPrice': 'costo_salon', 'id_event':'id_evento'
-        }
-        max_length = 0
-        total_result = []
-        for id_event in data['id_event']:
-            result = agendaTable.find_one({'id_event':id_event, 'state':'completado'}, {'_id':0, 'expenses': 0})
-            if result:
-                payments = getPayments({'id_event':id_event})
-                result = fixData(result)
-                max_length = len(payments) if len(payments) > max_length else max_length
-                for idx, payment in enumerate(payments):
-                    result['payment{}'.format(idx+1)] = payment
-                    dollarValue.append('payment{}'.format(idx+1))
-                total_result.append(result)
-        for index in range(max_length):
-            headers['payment{}'.format(index+1)] = 'pago_{}'.format(index+1)
-        df = pd.DataFrame(total_result)
-        return returnExcel(df, headers, 'margen', 'detalles', dollarValue, inThousands, max_length)
+        id_event = data['id_event']
+        result = agendaTable.find_one({'id_event':id_event, 'state':'completado'}, {'_id':0})      
+        if result:
+            ingresos = list(abonosTable.find({'id_event':id_event}, {'_id':0, '_id_event':0}))
+            egresos = []
+            inventario = []
+            result['date'] = str(result['day']) + '/' + str(result['month']) +  '/' + str(result['year'])
+            result.update(fixData(result))
+            [result.pop(key) for key in ['day', 'month', 'year'] if key in result]
+            for expense in result['expenses']:
+                ex = expense
+                id_expense = ex['id_expense']
+                # search for the expense details
+                expense_details = gastosTable.find_one({"id_expense": id_expense}, {'_id':0, '_id_event':0, 'allocation':0, 'id_expense':0, 'available':0})
+                expense_type = expense_details['expense_type']
+                del ex['expense_type']
+                del ex['id_expense']
+                del expense_details['expense_type']
+                print(expense_type)
+                if expense_type == 'Inventario':
+                    unit_price = expense_details["unit_price"]
+                    del expense_details["unit_price"]
+                    portion = ex["portion"]
+                    expense_details['date'] = str(expense_details['day']) + '/' + str(expense_details['month']) + '/' + str(expense_details['year'])
+                    # Calculate the amount
+                    amount = unit_price * portion
+                    expense_details['amount'] = amount
+                    [expense_details.pop(key) for key in ['day', 'month', 'year'] if key in expense_details]
+                    ex.update(expense_details)
+                    inventario.append(ex)
+                else:
+                    expense_details['date'] = str(expense_details['day']) + '/' + str(expense_details['month']) + '/' + str(expense_details['year'])
+                    [expense_details.pop(key) for key in ['day', 'month', 'year'] if key in expense_details]
+                    ex.update(expense_details)
+                    egresos.append(ex)
+            del result['expenses']
+            print(result)
+            print(egresos)
+            print(ingresos)
+            print(inventario)
+            df = pd.DataFrame([result])
+            return returnExcel(df, 'margen')
+        else:
+            statusCode = 404
+            res['message'] - 'No se encontro el evento'
+            json_data = json_util.dumps(res)
+            return HttpResponse(json_data, content_type='application/json', status=statusCode)
+
+       
 
     else:
         res['message'] = 'No se envio el id del evento'

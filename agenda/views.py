@@ -124,6 +124,7 @@ def addEvento(request):
                 payload = {'payer':data['name'], 'concept':'Anticipo','invoice':'','id_event':id_event, 'quantity':upfront}
                 payload['id_ticket'] = id_ticket
                 payload['day'], payload['month'], payload['year']  = [int(x) for x in formatted_time.split('-')]
+                del payload['upfront']
                 abonosTable.insert_one(payload)
             data['expenses'] = []
             data['state'] = 'pendiente'
