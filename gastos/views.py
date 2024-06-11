@@ -6,8 +6,9 @@ import json
 from bson import json_util
 import sys
 sys.path.append('../')
-from helpers.helpers import checkData, generateIDTicket, returnExcel, search, check_keys, searchWithProjection, updateData
+from helpers.helpers import checkData, generateIDTicket, returnExcel, search, check_keys, searchWithProjection, updateData, archivo_anual, archivo_mensual
 from helpers.admin import verifyRole
+from io import BytesIO
 
 client =  pymongo.MongoClient(settings.DB['HOST'], settings.DB['PORT'], username=settings.DB['USER'], password=settings.DB['PASS'])
 db = client[settings.DB['NAME']]
@@ -47,6 +48,8 @@ def addGasto(request):
                 date = day + month + str(data['year'])[2:]
                 data['id_expense'] = generateIDTicket(date)
                 res['message'] = message
+                if id_event != 'GENERAL' and data['expense_type'] != 'Gastos Administrativos':
+                    data['allocation'] = [{'id_event' : id_event}]
                 if data['expense_type'] != 'Inventario':
                     if id_event != 'GENERAL':
                         # this is a general expense of a event
@@ -248,16 +251,19 @@ def delGasto(request):
     else:
         if checkData(payload, ['id_expense'], {'id_expense':str})[0]:
             id_expense = payload['id_expense']
-            expense = gastosTable.find_one(payload, {'allocation':1})
+            expense = gastosTable.find_one(payload, {'allocation':1, 'expense_type':1})
             res, statusCode = eliminar(gastosTable, payload)
             if statusCode == 200:
                 if checkData(expense, ['allocation'], {'allocation':list})[0]:
+                    print(expense)
                     for assignment in expense['allocation']:
                         id_event = assignment['id_event']
                         queryUpdateAgenda = {'$pull': {'expenses': {'id_expense':id_expense}}}
                         res_ = updateData(agendaTable, {'id_event':id_event}, queryUpdateAgenda) 
                         print(res_)
+
                 res['message'] = 'Se elimino con exito'
+            
         else:
             statusCode = 400
             res['message'] = 'Se enviaron mal los datos'
@@ -517,7 +523,30 @@ def getMargenResultados(request):
         id_event = data['id_event']
         result = agendaTable.find_one({'id_event':id_event, 'state':'completado'}, {'_id':0})      
         if result:
-            ingresos = list(abonosTable.find({'id_event':id_event}, {'_id':0, '_id_event':0}))
+            pipeline = [
+                {
+                    "$match": {"id_event": id_event}
+                },
+                {
+                    "$addFields": {
+                        "date": {
+                            "$concat": [
+                                {"$cond": {"if": {"$lt": ["$day", 10]}, "then": {"$concat": ["0", {"$toString": "$day"}]}, "else": {"$toString": "$day"}}},
+                                "/",
+                                {"$cond": {"if": {"$lt": ["$month", 10]}, "then": {"$concat": ["0", {"$toString": "$month"}]}, "else": {"$toString": "$month"}}},
+                                "/",
+                                {"$toString": "$year"}
+                            ]
+                        }
+                    }
+                },
+                {
+                        "$project": {
+                            "_id": 0, "_id_event": 0,"day": 0,"month": 0, "year": 0}
+                    }
+                ]
+
+            ingresos = list(abonosTable.aggregate(pipeline))
             egresos = []
             inventario = []
             result['date'] = str(result['day']) + '/' + str(result['month']) +  '/' + str(result['year'])
@@ -555,7 +584,7 @@ def getMargenResultados(request):
             print(ingresos)
             print(inventario)
             df = pd.DataFrame([result])
-            return returnExcel(df, 'margen')
+            return returnExcel(df, 'margen', 'margen')
         else:
             statusCode = 404
             res['message'] - 'No se encontro el evento'
@@ -690,7 +719,7 @@ def getResumen(request):
         res = result
     elif checkData(data, ['year'], {'year':int})[0]:
         if checkData(data, ['month'], {'month':int})[0]:
-            pipeline = [
+            '''pipeline = [
                 {
                     '$match': {
                         'year': year,
@@ -715,8 +744,45 @@ def getResumen(request):
                     }
                 }
             ]
+
+            
             ingresos = list(abonosTable.aggregate(pipeline))
-            inventario = list(gastosTable.aggregate(matchExpense({'year': year, 'month':month, 'expense_type':'Inventario'})))
+            inventario = list(gastosTable.aggregate(matchExpense({'year': year, 'month':month, 'expense_type':'Inventario'})))'''
+            pipeline = [
+                {
+                    "$match": data
+                },
+                {
+                    "$addFields": {
+                        "date": {
+                            "$concat": [
+                                {"$cond": {"if": {"$lt": ["$day", 10]}, "then": {"$concat": ["0", {"$toString": "$day"}]}, "else": {"$toString": "$day"}}},
+                                "/",
+                                {"$cond": {"if": {"$lt": ["$month", 10]}, "then": {"$concat": ["0", {"$toString": "$month"}]}, "else": {"$toString": "$month"}}},
+                                "/",
+                                {"$toString": "$year"}
+                            ]
+                        }
+                    }
+                },
+                {
+                        "$project": {
+                            "_id": 0,"day": 0,"month": 0, "year": 0, 'allocation':0, 'available':0, 'unit_price':0,  'quantity':0, 'id_expense':0}
+                    }
+                ]
+            gastos = list(gastosTable.aggregate(pipeline))
+            print(gastos)
+            header_translation = {
+                'buyer': 'Comprador',
+                'concept': 'Concepto',
+                'invoice': 'Folio',
+                'provider': 'Proveedor',
+                'expense_type': 'Tipo de Gasto',
+                'amount': 'Monto',
+                'date': 'Fecha'
+            }
+            wb = archivo_mensual(gastos, header_translation)
+            return returnExcel(wb, 'resumen_mensual')
         else:
             year = data['year']
             pipeline = [
@@ -742,17 +808,19 @@ def getResumen(request):
                     }
                 }
             ]
+
+            
+
             ingresos = list(abonosTable.aggregate(pipeline))
             inventario = list(gastosTable.aggregate(matchExpense({'year': year, 'expense_type':'Inventario'})))
             gastos = list(gastosTable.aggregate(matchExpense({'year': year, 'expense_type':'Gastos'})))
             gastos_gen = list(gastosTable.aggregate(matchExpense({'year': year, 'expense_type':'Gastos Administrativos'})))
-            print(ingresos)
-            print(inventario)
-            print(gastos)
-            print(gastos_gen)
+
+            wb = archivo_anual(ingresos, gastos, inventario, gastos_gen)
+            return returnExcel(wb, 'resumen_anual')
     else:
-            res['message'] = 'No se encontro los campos month, year'
-            statusCode = 404
+        res['message'] = 'No se encontro los campos month, year'
+        statusCode = 404
 
     json_data = json_util.dumps(res)
     return HttpResponse(json_data, content_type='application/json', status=statusCode)
