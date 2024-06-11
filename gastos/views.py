@@ -6,7 +6,7 @@ import json
 from bson import json_util
 import sys
 sys.path.append('../')
-from helpers.helpers import checkData, generateIDTicket, returnExcel, search, check_keys, searchWithProjection, updateData, archivo_anual, archivo_mensual
+from helpers.helpers import checkData, generateIDTicket, returnExcel, search, check_keys, searchWithProjection, updateData, archivo_anual, archivo_mensual, resumen_evento
 from helpers.admin import verifyRole
 from io import BytesIO
 
@@ -579,24 +579,15 @@ def getMargenResultados(request):
                     ex.update(expense_details)
                     egresos.append(ex)
             del result['expenses']
-            print(result)
-            print(egresos)
-            print(ingresos)
-            print(inventario)
-            df = pd.DataFrame([result])
-            return returnExcel(df, 'margen', 'margen')
+            wb = resumen_evento(result, egresos, ingresos, inventario)
+            
+            return returnExcel(wb, 'resumen_evento')
         else:
             statusCode = 404
             res['message'] - 'No se encontro el evento'
-            json_data = json_util.dumps(res)
-            return HttpResponse(json_data, content_type='application/json', status=statusCode)
-
-       
-
     else:
         res['message'] = 'No se envio el id del evento'
         statusCode = 400
-    print(data)
     json_data = json_util.dumps(res)
     return HttpResponse(json_data, content_type='application/json', status=statusCode)
 

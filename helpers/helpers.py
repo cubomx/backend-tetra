@@ -112,6 +112,120 @@ def archivo_anual(ingresos_por_mes, gastos_por_mes, inventario_por_mes, gastos_g
     wb.close()
     return wb
 
+def resumen_evento(event, gastos, ingresos, inventario):
+    # Crear un archivo de Excel
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Resumen Evento"
+
+    # Estilos
+    header_font = Font(bold=True)
+    header_fill = PatternFill(start_color="FFC000", end_color="FFC000", fill_type="solid")
+    center_aligned_text = Alignment(horizontal="center")
+    currency_format = '"$"#,##0.00'
+
+    # Información del evento en una sola fila
+    headers = ["Cliente",	"Tipo de evento",	"Ubicación",	"No. Asistentes",	"Precio evento", "id_event",	"Estado", "Fecha", " ",	"Total ingresos",	"Total egresos",	"Renta de salón", "Utilidad","Margen",	"Margen sin Salon",]
+    values = [event['name'], event['type'], event['location'], event['num_of_people'], event['cost'], event['id_event'], event['state'], event['date'], " ", event['in'], event['out'], event['salon'], event['in']-event['out'], (event['in']-event['out'])/event['out'], (event['in']-event['out'])/(event['out']-event['salon']) ]
+
+    ws.append(headers)
+    ws.append(values)
+
+
+    # Aplicar formato de moneda a las celdas E2, J2, K2, L2, M2, N2
+    ws['E2'].number_format = currency_format
+    ws['J2'].number_format = currency_format
+    ws['K2'].number_format = currency_format
+    ws['L2'].number_format = currency_format
+    ws['M2'].number_format = currency_format
+
+    # Aplicar formato de porcentaje a las celdas N2 y O2
+    ws['N2'].number_format = '0.00%'
+    ws['O2'].number_format = '0.00%'
+
+
+    # Agregar descripción
+    ws.append(["Descripcion:"])
+    ws.append([""])
+
+    # Ingresos
+    ws.append(["Ingresos"])
+    ws.append(["Nombre del Cliente", "Fecha del Evento", "Importe", "IVA", "Total", "Quien Realizo el Pago", "Concepto", "Fecha del Pago", "Folio"])
+
+    for ingreso in ingresos:
+        total = ingreso['quantity']
+        iva = 0  # Suponiendo que el IVA es 0 en este ejemplo
+        ws.append([ingreso['payer'], event['date'], ingreso['quantity'], iva, total, ingreso['payer'], ingreso['concept'], ingreso['date'], ingreso['id_ticket']])
+
+    # Aplicar estilo a los encabezados de ingresos
+    for cell in ws[ws.max_row - len(ingresos) - 1]:
+        cell.font = header_font
+        cell.fill = PatternFill(start_color="00DC32", end_color="00DC32", fill_type="solid")
+        cell.alignment = center_aligned_text
+
+    # Egresos
+    ws.append(["Egresos"])
+    ws.append(["Nombre del Cliente", "Fecha del Evento", "Proveedor", "Concepto", "Monto", "IVA", "Total", "Fecha del Pago", "Folio"])
+
+    for gasto in gastos:
+        total = gasto['amount']
+        iva = 0  # Suponiendo que el IVA es 0 en este ejemplo
+        ws.append([event['name'], event['date'], gasto['buyer'], gasto['concept'], gasto['amount'], iva, total, gasto['date'], gasto['invoice']])
+
+    # Aplicar estilo a los encabezados de egresos
+    for cell in ws[ws.max_row - len(gastos) - 1]:
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = center_aligned_text
+
+    # Aplicar formato de moneda a los valores
+    for row in ws.iter_rows(min_row=3, max_row=ws.max_row, min_col=3, max_col=7):
+        for cell in row:
+            if isinstance(cell.value, (int, float)):
+                cell.number_format = currency_format
+
+
+    # Inventario
+    ws.append(["Inventario"])
+    ws.append(["Parte", "Proveedor", "Concepto", "Cantidad", "Importe", "Fecha", "Factura"])
+
+    for item in inventario:
+        ws.append([item['portion'], item['buyer'], item['concept'], item['quantity'], item['amount'], item['date'], item['invoice']])
+
+    # Aplicar estilo a los encabezados de inventario
+    for cell in ws[ws.max_row - len(inventario) - 1]:
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = center_aligned_text
+
+    # Aplicar formato de moneda a los valores del inventario
+    for row in ws.iter_rows(min_row=ws.max_row - len(inventario) + 1, max_row=ws.max_row, min_col=5, max_col=5):
+        for cell in row:
+            if isinstance(cell.value, (int, float)):
+                cell.number_format = currency_format
+
+
+    #Ajustar el ancho de las columnas automáticamente
+    for column in ws.columns:
+        max_length = 0
+        column = list(column)
+        for cell in column:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        adjusted_width = (max_length + 2)
+        ws.column_dimensions[column[0].column_letter].width = adjusted_width
+
+    # Centrar el texto en todas las celdas
+    for row in ws.iter_rows():
+        for cell in row:
+            cell.alignment = center_aligned_text
+
+    # Guardar el archivo
+    return wb
+
 def search(query, collection):
     return list(collection.find(query))
 
