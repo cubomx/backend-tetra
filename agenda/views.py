@@ -235,6 +235,31 @@ def getEvento(request):
     json_data = json_util.dumps(res)
     return HttpResponse(json_data, content_type='application/json', status=statusCode)
 
+def findEventBy(request):
+    if not request.content_type == 'application/json':
+        return HttpResponse([[{'message':'missing JSON'}]], content_type='application/json')
+
+    data = json.loads(request.body.decode('utf-8'))
+    statusCode = 200
+    res = {}
+    if statusCode != 200:
+        res = result
+    elif checkData(data, ['name', 'state'],{'name':str, 'state':list})[0]:
+        search_str=data['name']
+        results = list(agendaTable.find({
+            'name': {
+                '$regex': search_str,
+                '$options': 'i'
+            }, 'state': {'$in':data['state']}
+        }, {'id_event':1, 'name':1, '_id':0}))
+        res['events'] = results
+    else:
+        res['message'] = 'No se envio el campo name' 
+        statusCode = 404
+    json_data = json_util.dumps(res)
+    return HttpResponse(json_data, content_type='application/json', status=statusCode)
+
+
 
 def modifyEvento(request):
     data = json.loads(request.body.decode('utf-8'))

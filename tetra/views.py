@@ -277,17 +277,23 @@ def delConcepts(request):
 def addProvider(request):
     return addOption(request, ['provider'], {'provider':str}, 'providers', 'proveedor')
 
+    if not request.content_type == 'application/json':
+        return HttpResponse([[{'message':'missing JSON'}]], content_type='application/json', status=400)
+    data = json.loads(request.body.decode('utf-8'))
+    type_ = data['type']
+    return addOption(request, ['provider'], {'provider':str}, type_, 'proveedor')
+
 def getProviders(request):
-    return get(request, 'providers', 'proveedores')
+    if not request.content_type == 'application/json':
+        return HttpResponse([[{'message':'missing JSON'}]], content_type='application/json', status=400)
+    data = json.loads(request.body.decode('utf-8'))
+    type_ = data['type']
+    return get(request, type_, 'ingreso de evento')
 
 def delProvider(request):
-    return delOption(request, ['provider'], {'provider':str}, 'providers', 'proveedor')
+    if not request.content_type == 'application/json':
+        return HttpResponse([[{'message':'missing JSON'}]], content_type='application/json', status=400)
+    data = json.loads(request.body.decode('utf-8'))
+    type_ = data['type']
+    return delOption(request, ['provider'], {'concept':str}, type_ , 'ingreso de evento')
 
-def addGenProvider(request):
-    return addOption(request, ['provider'], {'provider':str}, 'gen_providers', 'proveedor general')
-
-def getGenProviders(request):
-    return get(request, 'gen_providers', 'proveedores generales')
-
-def delGenProvider(request):
-    return delOption(request, ['provider'], {'provider':str}, 'gen_providers', 'proveedor general')

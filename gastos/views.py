@@ -454,6 +454,7 @@ def guardarEstadoResultados(request):
         {'id_event':str, 'payments':list, 'in':[int,float], 'out':[int,float], 'margin':[int,float], 'salonPrice':[int,float],'utility':[int,float]})[0]:
             if agendaTable.find_one({'id_event': data['id_event']}):
                 id_event = data['id_event'] 
+                del data['id_event']
                 updateData(agendaTable, {'id_event': id_event}, {'$set' : {'state':'completado', 'margin': data}})
                 res['message'] = 'Se concluyo con exito'
             else:
@@ -645,6 +646,112 @@ def getEventData(request):
             res['data'] = dta
         else:
             res['message'] = 'No se encontro el evento {}'.format(data['id_event'])
+            statusCode = 404
+
+    json_data = json_util.dumps(res)
+    return HttpResponse(json_data, content_type='application/json', status=statusCode)
+
+def matchExpense(match):
+    pipeline = [
+                    {
+                        '$match': match
+                    },
+                    {
+                        '$group': {
+                            '_id': {
+                                'month': '$month',
+                                'concept': '$concept'
+                            },
+                            'totalQuantity': {
+                                '$sum': '$amount'
+                            }
+                        }
+                    },
+                    {
+                        '$project': {
+                            '_id': 0,
+                            'month': '$_id.month',
+                            'concept': '$_id.concept',
+                            'totalQuantity': 1
+                        }
+                    }
+                ]
+    return pipeline
+
+def getResumen(request):
+    if not request.content_type == 'application/json':
+        return HttpResponse([[{'message':'missing JSON'}]], content_type='application/json', status=400)
+    data = json.loads(request.body.decode('utf-8'))
+    res = {}
+    statusCode = 200
+    allowed_roles = {'admin', 'finance', 'inventary', 'secretary'}
+    result, statusCode = verifyRole(request, allowed_roles)
+    if statusCode != 200:
+        res = result
+    elif checkData(data, ['year'], {'year':int})[0]:
+        if checkData(data, ['month'], {'month':int})[0]:
+            pipeline = [
+                {
+                    '$match': {
+                        'year': year,
+                        'month': month
+                    }
+                },
+                {
+                    '$group': {
+                        '_id': {
+                            'concept': '$concept'
+                        },
+                        'totalQuantity': {
+                            '$sum': '$quantity'
+                        }
+                    }
+                },
+                {
+                    '$project': {
+                        '_id': 0,
+                        'concept': '$_id.concept',
+                        'totalQuantity': 1
+                    }
+                }
+            ]
+            ingresos = list(abonosTable.aggregate(pipeline))
+            inventario = list(gastosTable.aggregate(matchExpense({'year': year, 'month':month, 'expense_type':'Inventario'})))
+        else:
+            year = data['year']
+            pipeline = [
+                {
+                    '$match': {'year': year}},
+                {
+                    '$group': {
+                        '_id': {
+                            'month': '$month',
+                            'concept': '$concept'
+                        },
+                        'totalQuantity': {
+                            '$sum': '$quantity'
+                        }
+                    }
+                },
+                {
+                    '$project': {
+                        '_id': 0,
+                        'month': '$_id.month',
+                        'concept': '$_id.concept',
+                        'totalQuantity': 1
+                    }
+                }
+            ]
+            ingresos = list(abonosTable.aggregate(pipeline))
+            inventario = list(gastosTable.aggregate(matchExpense({'year': year, 'expense_type':'Inventario'})))
+            gastos = list(gastosTable.aggregate(matchExpense({'year': year, 'expense_type':'Gastos'})))
+            gastos_gen = list(gastosTable.aggregate(matchExpense({'year': year, 'expense_type':'Gastos Administrativos'})))
+            print(ingresos)
+            print(inventario)
+            print(gastos)
+            print(gastos_gen)
+    else:
+            res['message'] = 'No se encontro los campos month, year'
             statusCode = 404
 
     json_data = json_util.dumps(res)

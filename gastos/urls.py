@@ -12,5 +12,6 @@ urlpatterns = [
     path('revertirMargenResultados', views.revertirMargenResultados, name='revertirMargenResultados'),
     path('getMargenResultados', views.getMargenResultados, name='getMargenResultados'),
     path('getTotales', views.getTotales, name='getTotales'),
-    path('getEventData', views.getEventData, name='getEventData')
+    path('getEventData', views.getEventData, name='getEventData'),
+    path('getResumen', views.getResumen, name='getResumen')
 ]

@@ -8,5 +8,6 @@ urlpatterns = [
     path('addEvento', views.addEvento, name='addEvento'),
     path('delEvento', views.delEvento, name='delEvento'),
     path('getEvento', views.getEvento, name='getEvento'),
-    path('modifyEvento', views.modifyEvento, name='modifyEvento')
+    path('modifyEvento', views.modifyEvento, name='modifyEvento'),
+    path('encontrarEvento', views.findEventBy, name='findEventBy')
 ]
