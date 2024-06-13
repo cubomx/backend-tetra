@@ -126,7 +126,7 @@ def resumen_evento(event, gastos, ingresos, inventario):
     currency_format = '"$"#,##0.00'
 
     # Información del evento en una sola fila
-    headers = ["Cliente",	"Tipo de evento",	"Ubicación",	"No. Asistentes",	"Precio evento", "id_event",	"Estado", "Fecha"]
+    headers = ["Cliente",	"Tipo de evento",	"Ubicación",	"No. Asistentes",	"Precio evento", "ID Evento",	"Estado", "Fecha"]
     values = [event['name'], event['type'], event['location'], event['num_of_people'], event['cost'], event['id_event'], event['state'], event['date']]
 
     headers2 =[" ",	"Total ingresos",	"Total egresos",	"Renta de salón", "Utilidad","Margen",	"Margen sin Salon",]
