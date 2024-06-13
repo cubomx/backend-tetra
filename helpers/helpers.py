@@ -2,14 +2,12 @@ import secrets
 from datetime import datetime
 from tempfile import NamedTemporaryFile
 from django.utils.encoding import smart_str
-from django.http import HttpResponse, FileResponse
+from django.http import HttpResponse
 import pandas as pd
-import openpyxl
 from openpyxl import Workbook, load_workbook
-from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+from openpyxl.styles import Font, Alignment, PatternFill
 from openpyxl.utils import get_column_letter
 from io import BytesIO
-import os
 
 # Función para agregar datos y calcular totales
 def agregar_datos_y_totales(ws, df, start_row):
@@ -78,11 +76,6 @@ def archivo_mensual(data, header_translation):
 
 
 def archivo_anual(ingresos_por_mes, gastos_por_mes, inventario_por_mes, gastos_generales_por_mes):
-    # Crear un DataFrame para cada categoría
-    ingresos_df = pd.DataFrame(ingresos_por_mes)
-    egresos_df = pd.DataFrame(inventario_por_mes+gastos_por_mes)
-    gastos_generales_df = pd.DataFrame(gastos_generales_por_mes)
-
     # Crear un archivo de Excel
     wb = Workbook()
     ws = wb.active
@@ -91,7 +84,10 @@ def archivo_anual(ingresos_por_mes, gastos_por_mes, inventario_por_mes, gastos_g
     # Agregar datos y totales de ingresos
     ws.append(["Ingresos"])
     ws.append(["Concepto", "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre", "Total"])
-    agregar_datos_y_totales(ws, ingresos_df, start_row=3)
+    
+    if len(ingresos_por_mes) > 0:
+        ingresos_df = pd.DataFrame(ingresos_por_mes)
+        agregar_datos_y_totales(ws, ingresos_df, start_row=3)
 
     # Agregar separador
     ws.append([])
@@ -99,7 +95,10 @@ def archivo_anual(ingresos_por_mes, gastos_por_mes, inventario_por_mes, gastos_g
     # Agregar datos y totales de egresos
     ws.append(["Egresos"])
     ws.append(["Concepto", "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre", "Total"])
-    agregar_datos_y_totales(ws, egresos_df, start_row=ws.max_row + 1)
+
+    if len(gastos_por_mes) > 0:
+        egresos_df = pd.DataFrame(inventario_por_mes+gastos_por_mes)
+        agregar_datos_y_totales(ws, egresos_df, start_row=ws.max_row + 1)
 
     # Agregar separador
     ws.append([])
@@ -107,7 +106,9 @@ def archivo_anual(ingresos_por_mes, gastos_por_mes, inventario_por_mes, gastos_g
     # Agregar datos y totales de gastos generales
     ws.append(["Gastos Generales"])
     ws.append(["Concepto", "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre", "Total"])
-    agregar_datos_y_totales(ws, gastos_generales_df, start_row=ws.max_row + 1)
+    if len(gastos_generales_por_mes) > 0:
+        gastos_generales_df = pd.DataFrame(gastos_generales_por_mes)
+        agregar_datos_y_totales(ws, gastos_generales_df, start_row=ws.max_row + 1)
 
     wb.close()
     return wb

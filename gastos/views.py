@@ -613,7 +613,7 @@ def getTotales(request):
     data = json.loads(request.body.decode('utf-8'))
     res = {}
     statusCode = 200
-    allowed_roles = {'admin', 'finance'}
+    allowed_roles = {'admin', 'finance', 'auditor'}
     result, statusCode = verifyRole(request, allowed_roles)
     if statusCode != 200:
         res = result
@@ -772,8 +772,12 @@ def getResumen(request):
                 'amount': 'Monto',
                 'date': 'Fecha'
             }
-            wb = archivo_mensual(gastos, header_translation)
-            return returnExcel(wb, 'resumen_mensual')
+            if len(gastos) > 0:
+                wb = archivo_mensual(gastos, header_translation)
+                return returnExcel(wb, 'resumen_mensual')
+            else:
+                res['message'] = 'No hay gastos para el mes seleccionado'
+                statusCode = 404
         else:
             year = data['year']
             pipeline = [
@@ -801,11 +805,13 @@ def getResumen(request):
             ]
 
             
-
+            
             ingresos = list(abonosTable.aggregate(pipeline))
             inventario = list(gastosTable.aggregate(matchExpense({'year': year, 'expense_type':'Inventario'})))
             gastos = list(gastosTable.aggregate(matchExpense({'year': year, 'expense_type':'Gastos'})))
             gastos_gen = list(gastosTable.aggregate(matchExpense({'year': year, 'expense_type':'Gastos Administrativos'})))
+
+            print(ingresos)
 
             wb = archivo_anual(ingresos, gastos, inventario, gastos_gen)
             return returnExcel(wb, 'resumen_anual')
