@@ -125,23 +125,30 @@ def resumen_evento(event, gastos, ingresos, inventario):
     currency_format = '"$"#,##0.00'
 
     # Información del evento en una sola fila
-    headers = ["Cliente",	"Tipo de evento",	"Ubicación",	"No. Asistentes",	"Precio evento", "id_event",	"Estado", "Fecha", " ",	"Total ingresos",	"Total egresos",	"Renta de salón", "Utilidad","Margen",	"Margen sin Salon",]
-    values = [event['name'], event['type'], event['location'], event['num_of_people'], event['cost'], event['id_event'], event['state'], event['date'], " ", event['in'], event['out'], event['salon'], event['in']-event['out'], (event['in']-event['out'])/event['out'], (event['in']-event['out'])/(event['out']-event['salon']) ]
+    headers = ["Cliente",	"Tipo de evento",	"Ubicación",	"No. Asistentes",	"Precio evento", "id_event",	"Estado", "Fecha"]
+    values = [event['name'], event['type'], event['location'], event['num_of_people'], event['cost'], event['id_event'], event['state'], event['date']]
+
+    headers2 =[" ",	"Total ingresos",	"Total egresos",	"Renta de salón", "Utilidad","Margen",	"Margen sin Salon",]
+    values2 = [" ", event['in'], event['out'], event['salon'], event['in']-event['out'], (event['in']-event['out'])/event['out'], (event['in']-event['out'])/(event['out']-event['salon']) ]
 
     ws.append(headers)
     ws.append(values)
+    ws.append([None, None])
+    ws.append(headers2)
+    ws.append(values2)
+
 
 
     # Aplicar formato de moneda a las celdas E2, J2, K2, L2, M2, N2
     ws['E2'].number_format = currency_format
-    ws['J2'].number_format = currency_format
-    ws['K2'].number_format = currency_format
-    ws['L2'].number_format = currency_format
-    ws['M2'].number_format = currency_format
+    ws['B5'].number_format = currency_format
+    ws['C5'].number_format = currency_format
+    ws['D5'].number_format = currency_format
+    ws['E5'].number_format = currency_format
 
     # Aplicar formato de porcentaje a las celdas N2 y O2
-    ws['N2'].number_format = '0.00%'
-    ws['O2'].number_format = '0.00%'
+    ws['F5'].number_format = '0.00%'
+    ws['G5'].number_format = '0.00%'
 
 
     # Agregar descripción
@@ -179,7 +186,7 @@ def resumen_evento(event, gastos, ingresos, inventario):
         cell.alignment = center_aligned_text
 
     # Aplicar formato de moneda a los valores
-    for row in ws.iter_rows(min_row=3, max_row=ws.max_row, min_col=3, max_col=7):
+    for row in ws.iter_rows(min_row=7, max_row=ws.max_row, min_col=3, max_col=7):
         for cell in row:
             if isinstance(cell.value, (int, float)):
                 cell.number_format = currency_format
