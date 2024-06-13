@@ -95,7 +95,7 @@ def addEvento(request):
     statusCode = 400
     id_event = getIDEvento(data, 2)
     res = {}
-    allowed_roles = {'admin', 'secretary'}
+    allowed_roles = {'admin', 'finance', 'vendor'}
     result, statusCode = verifyRole(request, allowed_roles)
     if statusCode != 200:
         message = result['message']
@@ -198,7 +198,7 @@ def getEvento(request):
 
     expected_keys = ['name', 'type', 'year', 'day', 'month', 'location', 'num_of_people', 'cost', 'excel', 'state', 'sortear']
     res = {}
-    allowed_roles = {'admin', 'secretary', 'finance', 'inventary'}
+    allowed_roles = {'admin', 'auditor', 'finance', 'vendor', 'chef'}
     result, statusCode = verifyRole(request, allowed_roles)
 
     if statusCode != 200:
@@ -239,8 +239,10 @@ def findEventBy(request):
     if not request.content_type == 'application/json':
         return HttpResponse([[{'message':'missing JSON'}]], content_type='application/json')
 
+    allowed_roles = {'admin', 'auditor', 'finance', 'vendor', 'chef'}
+
     data = json.loads(request.body.decode('utf-8'))
-    statusCode = 200
+    result, statusCode = verifyRole(request, allowed_roles)
     res = {}
     if statusCode != 200:
         res = result
@@ -267,7 +269,7 @@ def modifyEvento(request):
     statusCode = 200
 
     response = {}
-    allowed_roles = {'admin', 'secretary'}
+    allowed_roles = {'admin'}
     result, statusCode = verifyRole(request, allowed_roles)
     if statusCode != 200:
         response = result

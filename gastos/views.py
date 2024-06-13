@@ -25,10 +25,10 @@ def addGasto(request):
     data = json.loads(request.body.decode('utf-8'))
     statusCode = 200
     expected_keys = ['day', 'month', 'year', 'concept', 'amount', 'buyer', 'invoice']
-    types = {'date':str, 'concept':str, 'amount':[float,int], 'buyer':str, 'invoice':str, 'day':int, 'month':int, 'year':int, 'expense_type':str}
+    types = {'date':str, 'concept':str, 'amount':[float,int], 'buyer':str, 'invoice':str, 'day':int, 'month':int, 'year':int, 'expense_type':str, 'provider':str}
     res = {}
 
-    allowed_roles = {'admin', 'finance'}
+    allowed_roles = {'admin', 'finance', 'vendor'}
     result, statusCode = verifyRole(request, allowed_roles)
     if statusCode != 200:
         res = result
@@ -155,7 +155,7 @@ def editGasto(request):
 
     payload = json.loads(request.body.decode('utf-8'))
     res = {}
-    allowed_roles = {'admin', 'finance', 'inventary'}
+    allowed_roles = {'admin'}
     result, statusCode = verifyRole(request, allowed_roles)
     expected_keys = ['day', 'month', 'year', 'concept', 'amount']
     types = {'day':int, 'month':int, 'year':int, 'concept':str, 'amount':[int,float], 'id_expense':str, 'expense_type':str}
@@ -243,7 +243,7 @@ def delGasto(request):
 
     payload = json.loads(request.body.decode('utf-8'))
 
-    allowed_roles = {'admin', 'finance', 'inventary'}
+    allowed_roles = {'admin'}
     res = {}
     result, statusCode = verifyRole(request, allowed_roles)
     if statusCode != 200:
@@ -280,7 +280,7 @@ def getGasto(request):
     res = {'expenses':[]}
     statusCode = 200
     
-    allowed_roles = {'admin', 'finance', 'inventary', 'secretary'}
+    allowed_roles = {'admin', 'auditor', 'finance', 'vendor', 'chef'}
     result, statusCode = verifyRole(request, allowed_roles)
     if statusCode != 200:
         res = result
@@ -377,7 +377,7 @@ def modifyGasto(request):
     data = json.loads(request.body.decode('utf-8'))
     res = {}
     statusCode = 200
-    allowed_roles = {'admin', 'finance'}
+    allowed_roles = {'admin', 'chef'}
     result, statusCode = verifyRole(request, allowed_roles)
     if statusCode != 200:
         res = result
@@ -514,7 +514,7 @@ def getMargenResultados(request):
     data = json.loads(request.body.decode('utf-8'))
     res = {}
     statusCode = 200
-    allowed_roles = {'admin', 'finance'}
+    allowed_roles = {'admin', 'auditor', 'finance'}
     result, statusCode = verifyRole(request, allowed_roles)
     if statusCode != 200:
         res = result
@@ -638,7 +638,7 @@ def getEventData(request):
     data = json.loads(request.body.decode('utf-8'))
     res = {}
     statusCode = 200
-    allowed_roles = {'admin', 'finance', 'inventary', 'secretary'}
+    allowed_roles = {'admin', 'auditor', 'finance', 'vendor', 'chef'}
     result, statusCode = verifyRole(request, allowed_roles)
     if statusCode != 200:
         res = result
@@ -704,7 +704,7 @@ def getResumen(request):
     data = json.loads(request.body.decode('utf-8'))
     res = {}
     statusCode = 200
-    allowed_roles = {'admin', 'finance', 'inventary', 'secretary'}
+    allowed_roles = {'admin', 'auditor', 'finance'}
     result, statusCode = verifyRole(request, allowed_roles)
     if statusCode != 200:
         res = result

@@ -25,7 +25,7 @@ def addAbono(request):
     isDataCorrect, message = checkData(data, keys, types)
     res={}
 
-    allowed_roles = {'admin', 'finance'}
+    allowed_roles = {'admin', 'finance', 'vendor'}
     result, statusCode = verifyRole(request, allowed_roles)
     if statusCode != 200:
         res = result
@@ -77,7 +77,7 @@ def getAbono(request):
     expected_keys = ['id_event', 'invoice', 'id_ticket']
     res = {}
 
-    allowed_roles = {'admin', 'finance', 'inventary', 'secretary'}
+    allowed_roles = {'admin', 'finance', 'auditor', 'vendor', 'chef'}
     result, statusCode = verifyRole(request, allowed_roles)
     if statusCode != 200:
         res = result
@@ -159,7 +159,7 @@ def delAbono(request):
     isDataCorrect = check_keys(data, keys)
     status = 200
 
-    allowed_roles = {'admin', 'finance'}
+    allowed_roles = {'admin'}
     result, statusCode = verifyRole(request, allowed_roles)
     if statusCode != 200:
         res = result

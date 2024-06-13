@@ -163,7 +163,7 @@ def register(request):
     keys = ['password', 'email', 'role', 'name']
     types = {'password' : str, 'email': str, 'role':str, 'name':str}
     isDataCorrect, message = checkData(data, keys, types)
-    roles = {'admin', 'secretary', 'finance', 'inventary'}
+    roles = {'admin', 'auditor', 'finance', 'vendor', 'chef'}
     allowed_roles = {'admin'}
     if statusCode != 200:
         res = result
@@ -223,7 +223,7 @@ def addOption(request, key, types, optionsKey, message):
     return HttpResponse(json_data, content_type='application/json', status=statusCode)
 
 def get(request, key, message):
-    allowed_roles = {'admin', 'finance', 'inventary', 'secretary'}
+    allowed_roles = {'admin', 'auditor', 'finance', 'vendor', 'chef'}
     result, statusCode = verifyRole(request, allowed_roles)
     if statusCode != 200:
         res = result
@@ -275,8 +275,6 @@ def delConcepts(request):
 
 # Providers
 def addProvider(request):
-    return addOption(request, ['provider'], {'provider':str}, 'providers', 'proveedor')
-
     if not request.content_type == 'application/json':
         return HttpResponse([[{'message':'missing JSON'}]], content_type='application/json', status=400)
     data = json.loads(request.body.decode('utf-8'))
