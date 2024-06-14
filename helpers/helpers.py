@@ -41,14 +41,19 @@ def agregar_datos_y_totales(ws, df, start_row):
                 cell.number_format = '"$"#,##0.00'
 
 def archivo_mensual(data, header_translation):
+
+    # Crear un borde delgado
+    thin_border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
+
     wb = Workbook()
     ws = wb.active
     ws.title = "Expenses"
+    ws.append([None, None])
 
     # Add the headers to the worksheet
     headers = list(data[0].keys())
     translated_headers = [header_translation[header] for header in headers]
-    ws.append(translated_headers)
+    ws.append([None]+translated_headers)
 
     # Add the data to the worksheet
     for entry in data:
@@ -60,20 +65,32 @@ def archivo_mensual(data, header_translation):
                 # If the key doesn't exist, fill with empty value
                 cell_value = ""
             row.append(cell_value)
-        ws.append(row)
+        ws.append([None]+row)
 
     # Apply formatting to the 'Monto' column (assumed to be the 6th column)
-    for row in ws.iter_rows(min_row=2, min_col=6, max_col=6, max_row=len(data) + 1):
+    for row in ws.iter_rows(min_row=2, min_col=7, max_col=7, max_row=len(data) + 2):
         for cell in row:
             cell.number_format = '"$"#,##0.00'
 
-    # Auto-adjust column widths
+    # Apply formatting to the 'Monto' column (assumed to be the 6th column)
+    for row in ws.iter_rows(min_row=2, min_col=2, max_col=len(data[0])+1, max_row=len(data) + 2):
+        for cell in row:
+            cell.border = thin_border
+
+    # Ajustar automÃ¡ticamente el ancho de las columnas
     for col in ws.columns:
-        max_length = max(len(str(cell.value)) for cell in col)
-        ws.column_dimensions[get_column_letter(col[0].column)].width = max_length
+        max_length = 0
+        column = col[0].column_letter  # Obtener la letra de la columna
+        for cell in col:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(cell.value)
+            except:
+                pass
+        adjusted_width = (max_length + 1)
+        ws.column_dimensions[column].width = adjusted_width
 
     return wb
-
 
 def archivo_anual(ingresos_por_mes, gastos_por_mes, inventario_por_mes, gastos_generales_por_mes):
     # Crear un archivo de Excel
