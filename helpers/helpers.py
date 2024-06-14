@@ -5,7 +5,7 @@ from django.utils.encoding import smart_str
 from django.http import HttpResponse
 import pandas as pd
 from openpyxl import Workbook, load_workbook
-from openpyxl.styles import Font, Alignment, PatternFill
+from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from openpyxl.utils import get_column_letter
 from io import BytesIO
 
