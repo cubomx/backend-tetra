@@ -131,7 +131,6 @@ def login(request):
         email = data['email']
         user = usuariosTable.find_one({'email': email}, projection)
         if user and len(user) > 0:
-            print(user)
             hPass = user['password']
             if verifyPassword(data['password'], hPass):
                 

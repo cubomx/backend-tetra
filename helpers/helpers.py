@@ -143,7 +143,7 @@ def resumen_evento(event, gastos, ingresos, inventario):
     currency_format = '"$"#,##0.00'
 
     # Información del evento en una sola fila
-    headers = ["Cliente",	"Tipo de evento",	"Ubicación",	"No. Asistentes",	"Precio evento", "ID Evento",	"Estado", "Fecha"]
+    headers = ["Cliente",	"Tipo de evento",	"Ubicación",	"No. Asistentes",	"Precio evento", "id_event",	"Estado", "Fecha"]
     values = [event['name'], event['type'], event['location'], event['num_of_people'], event['cost'], event['id_event'], event['state'], event['date']]
 
     headers2 =[" ",	"Total ingresos",	"Total egresos",	"Renta de salón", "Utilidad","Margen",	"Margen sin Salon",]
@@ -175,7 +175,7 @@ def resumen_evento(event, gastos, ingresos, inventario):
 
     # Ingresos
     ws.append(["Ingresos"])
-    ws.append(["Nombre del Cliente", "Fecha del Evento", "Importe", "IVA", "Total", "Quien Realizo el Pago", "Concepto", "Fecha del Pago", "Folio"])
+    ws.append(["Nombre del Cliente", "Fecha del Evento", "MONTO", "IVA", "Total", "Quien Realizo el Pago", "Concepto", "Fecha del Pago", "Folio"])
 
     for ingreso in ingresos:
         total = ingreso['quantity']
@@ -212,10 +212,12 @@ def resumen_evento(event, gastos, ingresos, inventario):
 
     # Inventario
     ws.append(["Inventario"])
-    ws.append(["Parte", "Proveedor", "Concepto", "Cantidad", "Importe", "Fecha", "Factura"])
+    ws.append(["Proveedor", "Encargado", "Concepto", "Cantidad", "Monto", "IVA", "TOTAL", "Fecha", "Factura"])
 
     for item in inventario:
-        ws.append([item['portion'], item['buyer'], item['concept'], item['quantity'], item['amount'], item['date'], item['invoice']])
+        total = item['amount']
+        iva = 0  # Suponiendo que el IVA es 0 en este ejemplo
+        ws.append([item['provider'], item['buyer'], item['concept'], item['quantity'], item['amount'], iva, total, item['date'], item['invoice']])
 
     # Aplicar estilo a los encabezados de inventario
     for cell in ws[ws.max_row - len(inventario) - 1]:
@@ -224,7 +226,7 @@ def resumen_evento(event, gastos, ingresos, inventario):
         cell.alignment = center_aligned_text
 
     # Aplicar formato de moneda a los valores del inventario
-    for row in ws.iter_rows(min_row=ws.max_row - len(inventario) + 1, max_row=ws.max_row, min_col=5, max_col=5):
+    for row in ws.iter_rows(min_row=ws.max_row - len(inventario) + 1, max_row=ws.max_row, min_col=5, max_col=7):
         for cell in row:
             if isinstance(cell.value, (int, float)):
                 cell.number_format = currency_format
@@ -235,18 +237,14 @@ def resumen_evento(event, gastos, ingresos, inventario):
         max_length = 0
         column = list(column)
         for cell in column:
+            cell.alignment = center_aligned_text
             try:
                 if len(str(cell.value)) > max_length:
                     max_length = len(str(cell.value))
             except:
                 pass
-        adjusted_width = (max_length + 2)
+        adjusted_width = (max_length + 1)
         ws.column_dimensions[column[0].column_letter].width = adjusted_width
-
-    # Centrar el texto en todas las celdas
-    for row in ws.iter_rows():
-        for cell in row:
-            cell.alignment = center_aligned_text
 
     # Guardar el archivo
     return wb
@@ -351,7 +349,6 @@ def generateTicketNumber(date):
     randon_end = secrets.token_hex(1)
     new_date = date.split('-')
     new_date[2] = new_date[2][:2]
-    print(new_date)
     id_ticket = [random_start] + new_date  + [randon_end]
     return ''.join(id_ticket)
 

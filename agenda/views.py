@@ -47,7 +47,6 @@ def agenda(request):
         res = result
     elif isDataCorrect:
         target_year, target_month, target_day = data['year'], data['month'], data['day']
-        print(target_month)
         future = data['isFuture']
         query = {}
         if future:
@@ -225,7 +224,6 @@ def getEvento(request):
         res = [{'message':' No informacion encontrada con los filtros usados'}]
         statusCode = 404
     elif checkData(data, ['excel'], {'excel' : str})[0]:
-        print(res)
         headers = {
             'name':'nombre', 'type':'categoria', 'year':'año', 'day':'día', 'month':'mes', 
             'location':'ubicacion', 'num_of_people':'invitados', 'cost':'costo', 'upfront':'adelanto', 'state':'estado'
@@ -283,7 +281,6 @@ def modifyEvento(request):
                     response = {'message':'Espacio bloqueado. No se puede cambiar el evento a la fecha y lugar deseado.'}
                     statusCode = 404
                 else:
-                    print("Not blocked")
                     response = updateData(agendaTable, {'id_event': data['id_event']}, { "$set" : data })
             # checking if some of the date/location variables are present
             elif not checkData(data, ['day', 'month', 'year', 'location'], {'location' : str, 'day' : int, 'month' : int, 'year' : int})[0]:

@@ -203,7 +203,6 @@ def editGasto(request):
                                 res['message'] = 'Se esta queriendo reducir a menos de lo ya asignado entre los multiples eventos'
                         else:
                             payload['available'] = payload['quantity']
-                            print(payload)
                             resUpdate = updateData(gastosTable, {'id_expense':id_expense}, {'$set': payload}) 
                             res = resUpdate 
                     else:
@@ -255,12 +254,10 @@ def delGasto(request):
             res, statusCode = eliminar(gastosTable, payload)
             if statusCode == 200:
                 if checkData(expense, ['allocation'], {'allocation':list})[0]:
-                    print(expense)
                     for assignment in expense['allocation']:
                         id_event = assignment['id_event']
                         queryUpdateAgenda = {'$pull': {'expenses': {'id_expense':id_expense}}}
                         res_ = updateData(agendaTable, {'id_event':id_event}, queryUpdateAgenda) 
-                        print(res_)
 
                 res['message'] = 'Se elimino con exito'
             
@@ -304,9 +301,7 @@ def getGasto(request):
                                     for data in expense_data:
                                         expense.update(data)
                                 # get the cost proportionated cost 
-                                print(expense_data)
                                 if checkData(expense_data[0], ['quantity'], {'quantity':[int,float]})[0]:
-                                    print("hehehehheheheh")
                                     expense['amount'] = expense['portion'] * expense_data[0]['unit_price']
                                 res['expenses'].append(expense)
                 else:
@@ -338,7 +333,6 @@ def getGasto(request):
 
 def searchExpense(expenses, id_expense):
     for expense in expenses:
-        print(expenses)
         if expense['id_expense'] == id_expense:
             return expense['portion']
     return -1
@@ -353,7 +347,6 @@ def checkExpenseAvailability(expense, portionDesire, portionOld, id_event, id_ex
     res = {}
     statusCode = 200
     expense = expense[0]
-    print(available + portionOld)
     if available + portionOld < portionDesire:
         res['message'] = 'La cantidad deseada {} es mayor a la disponible (o la disponible mas la que ya tienes asignada) {} del gasto seleccionado'.format(portionDesire, available + portionOld)
         statusCode = 404
@@ -396,7 +389,6 @@ def modifyGasto(request):
                     statusCode = 400
                     res['message'] = 'Has pedido 0 del gasto {}, no es posible asignar nulo'
                 else:
-                    print('No encontramos el gasto deseado {} en el evento buscado: {}'.format(id_event, id_expense))
                     expense, statusCode = searchInExpense(id_expense)
                     if statusCode == 200:
                         expense_type = expense[0]['expense_type']
@@ -483,7 +475,6 @@ def revertirMargenResultados(request):
     if statusCode != 200:
         res = result
     elif checkData(data, ['id_event'], {'id_event':str})[0]:
-        print('hehe')
         if agendaTable.find_one({'id_event':data['id_event'], 'state':'completado'}):
             updateData(agendaTable, {'id_event':data['id_event'], 'state':'completado'}, 
                        {'$set' : {'state':'pendiente'}, '$unset': {'margin': ''}})
@@ -494,7 +485,6 @@ def revertirMargenResultados(request):
     else:
         res['message'] = 'No se envio el id del evento'
         statusCode = 400
-    print(data)
     json_data = json_util.dumps(res)
     return HttpResponse(json_data, content_type='application/json', status=statusCode)
 
@@ -519,7 +509,6 @@ def getMargenResultados(request):
     if statusCode != 200:
         res = result
     elif checkData(data, ['id_event'], {'id_event':str})[0]:
-        print(data['id_event'])
         id_event = data['id_event']
         result = agendaTable.find_one({'id_event':id_event, 'state':'completado'}, {'_id':0})      
         if result:
@@ -579,7 +568,6 @@ def getMargenResultados(request):
                     egresos.append(ex)
             del result['expenses']
             wb = resumen_evento(result, egresos, ingresos, inventario)
-            print(inventario)
             return returnExcel(wb, 'resumen_evento')
         else:
             statusCode = 404
@@ -627,7 +615,6 @@ def getTotales(request):
     else:
         res['message'] = 'No se envio la fecha'
         statusCode = 400
-    print(data)
     json_data = json_util.dumps(res)
     return HttpResponse(json_data, content_type='application/json', status=statusCode)
 
@@ -643,7 +630,6 @@ def getEventData(request):
         res = result
     elif checkData(data, ['id_event'], {'id_event':str})[0]:
         event = agendaTable.find_one({'id_event': data['id_event']}, projection)
-        print(event)
         if event:
             dta = {}
             res['data'] = []
@@ -761,7 +747,6 @@ def getResumen(request):
                     }
                 ]
             gastos = list(gastosTable.aggregate(pipeline))
-            print(gastos)
             header_translation = {
                 'buyer': 'Comprador',
                 'concept': 'Concepto',
@@ -810,8 +795,6 @@ def getResumen(request):
             inventario = list(gastosTable.aggregate(matchExpense({'year': year, 'expense_type':'Inventario'})))
             gastos = list(gastosTable.aggregate(matchExpense({'year': year, 'expense_type':'Gastos'})))
             gastos_gen = list(gastosTable.aggregate(matchExpense({'year': year, 'expense_type':'Gastos Administrativos'})))
-
-            print(ingresos)
 
             wb = archivo_anual(ingresos, gastos, inventario, gastos_gen)
             return returnExcel(wb, 'resumen_anual')
