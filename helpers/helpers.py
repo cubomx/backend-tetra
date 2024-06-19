@@ -68,7 +68,7 @@ def archivo_mensual(data, header_translation):
         ws.append([None]+row)
 
     # Apply formatting to the 'Monto' column (assumed to be the 6th column)
-    for row in ws.iter_rows(min_row=2, min_col=7, max_col=7, max_row=len(data) + 2):
+    for row in ws.iter_rows(min_row=2, min_col=8, max_col=8, max_row=len(data) + 2):
         for cell in row:
             cell.number_format = '"$"#,##0.00'
 

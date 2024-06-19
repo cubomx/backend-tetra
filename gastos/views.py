@@ -561,7 +561,6 @@ def getMargenResultados(request):
                 del ex['expense_type']
                 del ex['id_expense']
                 del expense_details['expense_type']
-                print(expense_type)
                 if expense_type == 'Inventario':
                     unit_price = expense_details["unit_price"]
                     del expense_details["unit_price"]
@@ -580,7 +579,7 @@ def getMargenResultados(request):
                     egresos.append(ex)
             del result['expenses']
             wb = resumen_evento(result, egresos, ingresos, inventario)
-            
+            print(inventario)
             return returnExcel(wb, 'resumen_evento')
         else:
             statusCode = 404
@@ -770,7 +769,8 @@ def getResumen(request):
                 'provider': 'Proveedor',
                 'expense_type': 'Tipo de Gasto',
                 'amount': 'Monto',
-                'date': 'Fecha'
+                'date': 'Fecha',
+                'description': 'Descripcion'
             }
             if len(gastos) > 0:
                 wb = archivo_mensual(gastos, header_translation)
