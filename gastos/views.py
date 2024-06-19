@@ -24,7 +24,7 @@ def addGasto(request):
 
     data = json.loads(request.body.decode('utf-8'))
     statusCode = 200
-    expected_keys = ['day', 'month', 'year', 'concept', 'amount', 'buyer', 'invoice']
+    expected_keys = ['day', 'month', 'year', 'concept', 'amount', 'buyer', 'invoice', 'provider']
     types = {'date':str, 'concept':str, 'amount':[float,int], 'buyer':str, 'invoice':str, 'day':int, 'month':int, 'year':int, 'expense_type':str, 'provider':str}
     res = {}
 
@@ -157,8 +157,8 @@ def editGasto(request):
     res = {}
     allowed_roles = {'admin'}
     result, statusCode = verifyRole(request, allowed_roles)
-    expected_keys = ['day', 'month', 'year', 'concept', 'amount']
-    types = {'day':int, 'month':int, 'year':int, 'concept':str, 'amount':[int,float], 'id_expense':str, 'expense_type':str}
+    expected_keys = ['day', 'month', 'year', 'concept', 'amount', 'provider']
+    types = {'day':int, 'month':int, 'year':int, 'concept':str, 'amount':[int,float], 'id_expense':str, 'expense_type':str, 'provider':str}
     if statusCode != 200:
         res = result
     else:
