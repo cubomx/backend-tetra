@@ -14,7 +14,10 @@
     - Run `docker-compose up -d`
 5. Run DJango app:
     - Go to **/** of the project  
-    - Run `pip3 install Django==4.2 pandas pymongo openpyxl PyJWT django-cors-headers bcrypt`
+    - Run `pip3 install Django==4.2 pandas pymongo openpyxl PyJWT django-cors-headers bcrypt django-environ`
+6. (OPTIONAL): To run in a server
+    - `pip2 install gunicorn`
+    - `gunicorn --workers <N> --bind unix:/path/to/yourproject.sock yourproject.wsgi:application` 
 
 **NOTE**: Please, run all this at the Ubuntu terminal with the [Windows Terminal](https://apps.microsoft.com/detail/9n0dx20hk701)
 
