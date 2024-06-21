@@ -9,7 +9,8 @@ from helpers.admin import verifyRole, generateBearer, hashPassword, TokenVerific
 from .helpers import addToOptions, getOptions, delOptions
 from django.conf import settings
 
-client =  pymongo.MongoClient(settings.DB['HOST'], settings.DB['PORT'], username=settings.DB['USER'], password=settings.DB['PASS'])
+client = pymongo.MongoClient(settings.CONNECTION_STRING)
+
 db = client[settings.DB['NAME']]
 usuariosTable = db['usuarios']
 adminTable = db['configuraciones']

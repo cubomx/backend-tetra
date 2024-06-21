@@ -2,6 +2,11 @@
 from pathlib import Path
 import environ
 
+import warnings
+
+# Suppress Cosmos DB warning
+warnings.filterwarnings("ignore", message="You appear to be connected to a CosmosDB cluster")
+
 # Initialise environment variables
 env = environ.Env()
 environ.Env.read_env()
@@ -45,13 +50,16 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+ALLOWED_HOSTS = ['localhost', '127.0.0.1','<MY_IP>','<IP>']
+
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
+    "http://localhost",
     'http://*.127.0.0.1',
-    'http://<IP>:<PORT>'
+    'http://<IP>',
+    'http://<MY_IP>'
 ]
 
-CSRF_TRUSTED_ORIGINS = ['http://*.127.0.0.1', "http://localhost:3000", "http://<IP>:<PORT>"]
+CSRF_TRUSTED_ORIGINS = ['http://*.127.0.0.1', "http://localhost",'http://<MY_IP>', 'http://<IP>']
 
 CORS_ALLOW_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
 CORS_ALLOW_HEADERS = ['Authorization', 'Content-Type']
@@ -81,6 +89,9 @@ WSGI_APPLICATION = 'tetra.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
+
+
+CONNECTION_STRING = env('CONNECTION_STRING')
 
 DB = {
     'PASS' : env('DB_PASS'),
