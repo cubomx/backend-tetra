@@ -7,7 +7,8 @@ import sys
 sys.path.append('../')
 from helpers.admin import hashPassword
 
-client =  pymongo.MongoClient(settings.DB['HOST'], settings.DB['PORT'], username=settings.DB['USER'], password=settings.DB['PASS'])
+client = pymongo.MongoClient(settings.CONNECTION_STRING)
+#client =  pymongo.MongoClient(settings.DB['HOST'], settings.DB['PORT'], username=settings.DB['USER'], password=settings.DB['PASS'])
 db = client[settings.DB['NAME']]
 usuariosTable = db['usuarios']
 

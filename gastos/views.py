@@ -10,7 +10,8 @@ from helpers.helpers import checkData, generateIDTicket, returnExcel, search, ch
 from helpers.admin import verifyRole
 from io import BytesIO
 
-client =  pymongo.MongoClient(settings.DB['HOST'], settings.DB['PORT'], username=settings.DB['USER'], password=settings.DB['PASS'])
+client = pymongo.MongoClient(settings.CONNECTION_STRING)
+
 db = client[settings.DB['NAME']]
 abonosTable = db['abonos']
 agendaTable = db['agenda']

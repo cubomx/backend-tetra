@@ -8,12 +8,9 @@ import sys, os
 sys.path.append('../')
 from helpers.helpers import updateData
 
-client =  pymongo.MongoClient(settings.DB['HOST'], settings.DB['PORT'], username=settings.DB['USER'], password=settings.DB['PASS'])
+client = pymongo.MongoClient(settings.CONNECTION_STRING)
 db = client[settings.DB['NAME']]
 configTable = db['configuraciones']
-
-
-
 
 class Command(BaseCommand):
     help = 'Initialize app options (locations, types of events, concepts, providers)'

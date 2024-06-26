@@ -12,7 +12,8 @@ from helpers.admin import verifyRole
 import datetime
 import pytz
 
-client =  pymongo.MongoClient(settings.DB['HOST'], settings.DB['PORT'], username=settings.DB['USER'], password=settings.DB['PASS'])
+client = pymongo.MongoClient(settings.CONNECTION_STRING)
+
 db = client[settings.DB['NAME']]
 agendaTable = db['agenda']
 gastosTable = db['gastos']
