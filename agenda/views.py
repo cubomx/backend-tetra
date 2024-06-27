@@ -88,7 +88,7 @@ def addEvento(request):
     data = json.loads(request.body.decode('utf-8'))
     keys = ['name',  'type', 'day', 'month', 'year', 'location', 'num_of_people', 'cost', 'upfront']
     types = {'name': str, 'type': str, 'day' : int, 'month' : int, 'year' : int,  
-             'location' : str, 'num_of_people' : int, 'cost': int, 'upfront': int         
+             'location' : str, 'num_of_people' : int, 'cost': [int,float], 'upfront': [int,float]         
     }
 
     isDataCorrect, message = checkData(data, keys, types)
@@ -124,10 +124,10 @@ def addEvento(request):
                 payload = {'payer':data['name'], 'concept':'Anticipo','invoice':'','id_event':id_event, 'quantity':upfront}
                 payload['id_ticket'] = id_ticket
                 payload['day'], payload['month'], payload['year']  = [int(x) for x in formatted_time.split('-')]
-                del payload['upfront']
                 abonosTable.insert_one(payload)
             data['expenses'] = []
             data['state'] = 'pendiente'
+            del data['upfront']
             result = agendaTable.insert_one(data)  
             
             if result.inserted_id:
